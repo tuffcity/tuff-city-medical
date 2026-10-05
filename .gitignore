@@ -1,0 +1,10 @@
+.DS_Store
+.wrangler/
+.dev.vars
+node_modules/
+*.log
+.claude/
+# Medical data never enters git.
+data/
+*.findings.json
+med-findings*.json
