@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>MED · Aaron's Records</title>
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#17151c" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f6f4f9; --panel: #ffffff; --ink: #1e1b24; --muted: #6c6578; --line: #e3deeb;
+    --accent: #6b4fa3; --accent-ink: #ffffff; --soft: #efe9f8; --warn: #9a3412; --warn-bg: #fff4ec;
+    --ok: #1f7a4d; --ok-bg: #e8f6ee; --danger: #b42318;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141218; --panel: #1d1a23; --ink: #ebe6f2; --muted: #a39bb0; --line: #332e3d;
+      --accent: #d8bfff; --accent-ink: #1a1424; --soft: #282332; --warn: #fdba74; --warn-bg: #3a2416;
+      --ok: #7ad3a3; --ok-bg: #16301f; --danger: #ff8a80;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141218; --panel: #1d1a23; --ink: #ebe6f2; --muted: #a39bb0; --line: #332e3d;
+    --accent: #d8bfff; --accent-ink: #1a1424; --soft: #282332; --warn: #fdba74; --warn-bg: #3a2416;
+    --ok: #7ad3a3; --ok-bg: #16301f; --danger: #ff8a80;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 Inter, system-ui, sans-serif; }
+  a { color: var(--accent); }
+  button { font: inherit; }
+  header.top { position: sticky; top: 0; z-index: 5; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .bar { max-width: 1040px; margin: 0 auto; padding: 14px 16px 0; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .bar h1 { font: 600 28px/1 "Cormorant Garamond", Georgia, serif; margin: 0; letter-spacing: .5px; }
+  .bar h1 b { color: var(--accent); }
+  .bar small { color: var(--muted); font-size: 12px; flex: 1; }
+  .bar .who { font-size: 12px; color: var(--muted); }
+  nav.tabs { max-width: 1040px; margin: 0 auto; padding: 8px 12px 0; display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+  nav.tabs button { border: 0; background: transparent; color: var(--muted); padding: 9px 12px 10px; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; font-weight: 500; font-size: 14px; }
+  nav.tabs button.on { color: var(--ink); border-bottom-color: var(--accent); }
+  nav.tabs .count { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 0 6px; font-size: 11px; margin-left: 4px; }
+  main { max-width: 1040px; margin: 0 auto; padding: 18px 16px 80px; }
+  .notice { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 10px 14px; margin: 0 0 14px; font-size: 14px; }
+  .notice.ok { background: var(--ok-bg); color: var(--ok); }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+  .btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 9px; padding: 7px 12px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.danger { color: var(--danger); }
+  .btn.sm { padding: 4px 9px; font-size: 12px; }
+  section.block { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; margin: 0 0 16px; }
+  section.block > h2 { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--line); font: 600 20px/1.2 "Cormorant Garamond", Georgia, serif; }
+  section.block > h2 span.n { color: var(--muted); font: 500 12px Inter, sans-serif; }
+  section.block > h2 .btn { margin-left: auto; }
+  .rows { list-style: none; margin: 0; padding: 0; }
+  .row { padding: 11px 16px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; }
+  .row:first-child { border-top: 0; }
+  .row .t { font-weight: 600; overflow-wrap: anywhere; }
+  .row .d { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; grid-column: 1; }
+  .row .d .k { color: var(--ink); opacity: .7; }
+  .row .acts { grid-row: 1 / span 2; grid-column: 2; display: flex; gap: 6px; align-items: start; flex-wrap: wrap; justify-content: end; }
+  .badge { display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; border-radius: 8px; padding: 1px 7px; margin-left: 6px; vertical-align: 2px; }
+  .badge.unrev { background: var(--warn-bg); color: var(--warn); }
+  .badge.kind { background: var(--soft); color: var(--muted); }
+  .src { font-size: 12px; color: var(--muted); font-style: italic; grid-column: 1; overflow-wrap: anywhere; }
+  .empty { padding: 14px 16px; color: var(--muted); font-size: 14px; }
+  /* Emergency card */
+  .card { background: var(--panel); border: 2px solid var(--accent); border-radius: 16px; padding: 18px 20px; margin: 0 0 16px; }
+  .card h2 { font: 600 26px/1.1 "Cormorant Garamond", Georgia, serif; margin: 0 0 2px; }
+  .card .sub { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 22px; }
+  .grid h3 { font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--accent); margin: 0 0 4px; }
+  .grid ul { margin: 0; padding-left: 18px; }
+  .grid li { margin: 2px 0; overflow-wrap: anywhere; }
+  .grid .none { color: var(--muted); font-size: 13px; }
+  .alert li { color: var(--danger); font-weight: 600; }
+  /* Dialog */
+  dialog { border: 1px solid var(--line); border-radius: 16px; padding: 0; width: min(560px, calc(100vw - 24px)); background: var(--panel); color: var(--ink); }
+  dialog::backdrop { background: rgba(10, 8, 14, .55); }
+  dialog form { padding: 18px 20px 16px; }
+  dialog h3 { font: 600 22px "Cormorant Garamond", Georgia, serif; margin: 0 0 12px; }
+  .fld { display: block; margin: 0 0 10px; }
+  .fld span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+  .fld input, .fld select, .fld textarea { width: 100%; padding: 9px 11px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: 15px Inter, sans-serif; }
+  .fld textarea { min-height: 80px; resize: vertical; }
+  .fld input:focus, .fld select:focus, .fld textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .dlg-acts { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+  .err { color: var(--danger); font-size: 13px; min-height: 18px; }
+  /* Ask */
+  .chat { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; min-height: 220px; }
+  .msg { margin: 0 0 14px; }
+  .msg .w { font-size: 12px; color: var(--muted); }
+  .msg.user .b { background: var(--soft); border-radius: 12px; padding: 9px 12px; white-space: pre-wrap; display: inline-block; max-width: 100%; }
+  .msg.assistant .b { white-space: pre-wrap; }
+  .composer { display: flex; gap: 8px; margin-top: 12px; }
+  .composer textarea { flex: 1; resize: none; min-height: 46px; padding: 11px 13px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: 15px/1.45 Inter, sans-serif; }
+  .ideas { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+  .ideas button { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 6px 11px; font-size: 13px; cursor: pointer; }
+  table.log { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.log td { border-top: 1px solid var(--line); padding: 7px 16px; vertical-align: top; overflow-wrap: anywhere; }
+  table.log td:first-child { color: var(--muted); white-space: nowrap; }
+  .hidden { display: none !important; }
+  @media (max-width: 560px) { .bar small { flex-basis: 100%; order: 3; } .row { grid-template-columns: 1fr; } .row .acts { grid-row: auto; grid-column: 1; justify-content: start; } }
+  @media print {
+    header.top, .toolbar, .notice, .noprint, section.block, nav { display: none !important; }
+    body { background: #fff; color: #000; }
+    main { padding: 0; }
+    .card { border: 2px solid #000; }
+    .grid h3 { color: #000; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="bar">
+    <h1><b>MED</b> · Aaron Fuchs</h1>
+    <small>Medical, dental &amp; insurance records — private to Nanci and Aaron</small>
+    <span class="who" id="who"></span>
+  </div>
+  <nav class="tabs" id="tabs"></nav>
+</header>
+<main id="main"><p class="empty">Loading…</p></main>
+
+<dialog id="dlg"><form method="dialog" id="dlgForm"></form></dialog>
+<input type="file" id="importFile" accept="application/json,.json" class="hidden" />
+
+<script>
+const TABS = [
+  { id: "summary", label: "Emergency summary" },
+  { id: "medical", label: "Medical" },
+  { id: "dental", label: "Dental" },
+  { id: "insurance", label: "Insurance" },
+  { id: "documents", label: "Documents" },
+  { id: "activity", label: "Activity" },
+  { id: "ask", label: "Ask MED" },
+];
+const isDental = (r) => r.kind === "dental";
+// Which sections each tab shows, with a record filter and the defaults a new record gets.
+const LAYOUT = {
+  medical: [
+    ["conditions"], ["medications"], ["allergies"],
+    ["providers", (r) => !isDental(r), { kind: "medical" }],
+    ["visits", (r) => !isDental(r), { kind: "medical" }],
+    ["procedures", (r) => !isDental(r), { kind: "medical" }],
+    ["immunizations"],
+  ],
+  dental: [
+    ["providers", isDental, { kind: "dental" }, "Dentists & specialists"],
+    ["visits", isDental, { kind: "dental" }, "Dental visits & cleanings"],
+    ["procedures", isDental, { kind: "dental" }, "Dental procedures & treatment plans"],
+  ],
+  insurance: [["insurance"], ["claims"]],
+};
+
+const S = { me: null, schema: {}, records: [], files: [], tab: "summary", chat: [], notice: null };
+try { const t = localStorage.getItem("med-tab"); if (TABS.some((x) => x.id === t)) S.tab = t; } catch {}
+
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtDate = (d) => {
+  if (!d) return "";
+  if (/^\d{4}$/.test(d)) return d;
+  const [y, m, day] = d.split("-").map(Number);
+  return new Date(y, m - 1, day || 1).toLocaleDateString("en-US", day ? { month: "short", day: "numeric", year: "numeric" } : { month: "short", year: "numeric" });
+};
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { ...opts, headers: opts.body && !(opts.body instanceof FormData) ? { "content-type": "application/json" } : {} });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status}).`);
+  return data;
+}
+
+async function load() {
+  const [me, schema, recs, files] = await Promise.all([api("/api/me"), api("/api/schema"), api("/api/records"), api("/api/files")]);
+  S.me = me; S.schema = schema; S.records = recs.records; S.files = files.files;
+  $("#who").textContent = me.email;
+  render();
+}
+
+const unreviewed = () => S.records.filter((r) => r.reviewed === false);
+const bySection = (s) => S.records.filter((r) => r.section === s);
+
+function sortRecs(section, list) {
+  const def = S.schema[section];
+  const dk = def.date;
+  return list.slice().sort((a, b) =>
+    (a.reviewed === false) - (b.reviewed === false) ||
+    (dk ? String(b[dk] || "").localeCompare(String(a[dk] || "")) : String(a[def.title] || "").localeCompare(String(b[def.title] || ""))));
+}
+
+function renderTabs() {
+  const n = unreviewed().length;
+  $("#tabs").innerHTML = TABS.map((t) =>
+    `<button data-tab="${t.id}" class="${S.tab === t.id ? "on" : ""}">${esc(t.label)}${t.id === "summary" && n ? `<span class="count" title="Unreviewed records">${n}</span>` : ""}</button>`).join("");
+}
+
+function noticeHtml() {
+  if (!S.notice) return "";
+  return `<div class="notice ${S.notice.ok ? "ok" : ""}">${esc(S.notice.text)}</div>`;
+}
+function say(text, ok = false) { S.notice = { text, ok }; render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+
+function recordRow(r) {
+  const def = S.schema[r.section];
+  const title = r[def.title] || r.name || r.carrier || "(untitled)";
+  const details = def.fields.filter((f) => f.key !== def.title && r[f.key])
+    .map((f) => `<span class="k">${esc(f.label)}:</span> ${esc(f.type === "date" ? fmtDate(r[f.key]) : r[f.key])}`).join(" · ");
+  const files = S.files.filter((f) => f.recordId === r.id);
+  return `<li class="row">
+    <div class="t">${esc(title)}${r.section === "providers" && r.kind ? `<span class="badge kind">${esc(r.kind)}</span>` : ""}${r.reviewed === false ? `<span class="badge unrev">Unreviewed</span>` : ""}</div>
+    <div class="acts noprint">
+      ${r.reviewed === false ? `<button class="btn sm primary" data-act="confirm" data-s="${r.section}" data-id="${r.id}">Confirm</button>` : ""}
+      <button class="btn sm" data-act="edit" data-s="${r.section}" data-id="${r.id}">Edit</button>
+      <button class="btn sm" data-act="attach" data-s="${r.section}" data-id="${r.id}">Attach</button>
+      <button class="btn sm danger" data-act="del" data-s="${r.section}" data-id="${r.id}">Delete</button>
+    </div>
+    ${details ? `<div class="d">${details}</div>` : ""}
+    ${files.length ? `<div class="d">📎 ${files.map((f) => `<a href="/api/files/${f.id}" target="_blank" rel="noopener">${esc(f.name)}</a>`).join(", ")}</div>` : ""}
+    ${r.source && r.reviewed === false ? `<div class="src">Found in: ${esc(r.source)}</div>` : ""}
+  </li>`;
+}
+
+function sectionBlock(section, filter, defaults, title) {
+  const def = S.schema[section];
+  const list = sortRecs(section, bySection(section).filter(filter || (() => true)));
+  return `<section class="block">
+    <h2>${esc(title || def.label)} <span class="n">${list.length}</span>
+      <button class="btn sm" data-act="add" data-s="${section}" data-def='${esc(JSON.stringify(defaults || {}))}'>+ Add</button></h2>
+    ${list.length ? `<ul class="rows">${list.map(recordRow).join("")}</ul>` : `<div class="empty">Nothing recorded yet.</div>`}
+  </section>`;
+}
+
+function li(items, fmt) { return items.length ? `<ul>${items.map((x) => `<li>${fmt(x)}</li>`).join("")}</ul>` : `<div class="none">None on record</div>`; }
+
+function renderSummary() {
+  const allergies = bySection("allergies");
+  const meds = bySection("medications").filter((m) => m.status !== "past");
+  const conds = bySection("conditions").filter((c) => c.status !== "resolved");
+  const contacts = bySection("contacts");
+  const ins = bySection("insurance");
+  const provs = bySection("providers");
+  const flag = (r) => (r.reviewed === false ? ` <span class="badge unrev">Unreviewed</span>` : "");
+  const n = unreviewed().length;
+  return `${noticeHtml()}
+  ${n ? `<div class="notice">${n} record${n > 1 ? "s" : ""} found in Gmail/Drive still need${n > 1 ? "" : "s"} review. They're listed under <b>Needs review</b> below — check each and press Confirm (or Edit / Delete).</div>` : ""}
+  <div class="toolbar noprint">
+    <button class="btn primary" data-act="print">Print emergency card</button>
+    <button class="btn" data-act="import">Import Gmail/Drive findings</button>
+    <button class="btn" data-act="export">Download backup (JSON)</button>
+  </div>
+  <div class="card">
+    <h2>Aaron Fuchs — Emergency medical summary</h2>
+    <div class="sub">Printed ${esc(new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }))} from MED. Confirm details with his providers.</div>
+    <div class="grid">
+      <div class="alert"><h3>Allergies</h3>${li(allergies, (a) => `${esc(a.name)}${a.reaction ? ` — ${esc(a.reaction)}` : ""}${a.severity ? ` (${esc(a.severity)})` : ""}${flag(a)}`)}</div>
+      <div><h3>Current medications</h3>${li(meds, (m) => `${esc(m.name)}${m.dose ? ` — ${esc(m.dose)}` : ""}${flag(m)}`)}</div>
+      <div><h3>Conditions</h3>${li(conds, (c) => `${esc(c.name)}${c.since ? ` (since ${esc(fmtDate(c.since))})` : ""}${flag(c)}`)}</div>
+      <div><h3>Emergency contacts</h3>${li(contacts, (c) => `${esc(c.name)}${c.relation ? `, ${esc(c.relation)}` : ""}${c.phone ? ` — ${esc(c.phone)}` : ""}${flag(c)}`)}</div>
+      <div><h3>Insurance</h3>${li(ins, (i) => `<b>${esc(i.type)}</b>: ${esc(i.carrier)}${i.plan ? ` ${esc(i.plan)}` : ""}${i.memberId ? ` · ID ${esc(i.memberId)}` : ""}${i.groupNumber ? ` · Grp ${esc(i.groupNumber)}` : ""}${i.phone ? ` · ${esc(i.phone)}` : ""}${flag(i)}`)}</div>
+      <div><h3>Doctors &amp; dentists</h3>${li(provs, (p) => `${esc(p.name)}${p.specialty ? ` (${esc(p.specialty)})` : p.kind ? ` (${esc(p.kind)})` : ""}${p.phone ? ` — ${esc(p.phone)}` : ""}${flag(p)}`)}</div>
+    </div>
+  </div>
+  ${n ? `<section class="block"><h2>Needs review <span class="n">${n}</span></h2><ul class="rows">${unreviewed().map((r) => recordRow(r).replace('<div class="t">', `<div class="t"><span class="badge kind">${esc(S.schema[r.section].label)}</span> `)).join("")}</ul></section>` : ""}
+  ${sectionBlock("contacts")}`;
+}
+
+function renderDocuments() {
+  const opts = `<option value="">— none —</option>` + Object.entries(S.schema).map(([k, d]) => `<option value="${k}">${esc(d.label)}</option>`).join("");
+  return `${noticeHtml()}
+  <div class="toolbar">
+    <label class="btn primary">Upload file<input type="file" id="upFile" class="hidden" /></label>
+    <label class="fld" style="margin:0;display:flex;gap:6px;align-items:center"><span style="margin:0">File under</span><select id="upSection" style="width:auto">${opts}</select></label>
+  </div>
+  <p class="empty" style="padding:0 0 12px">Insurance cards (front &amp; back), EOBs, X-rays, lab results, visit summaries. Up to 10 MB each.</p>
+  <section class="block"><h2>Documents <span class="n">${S.files.length}</span></h2>
+  ${S.files.length ? `<ul class="rows">${S.files.map((f) => `<li class="row">
+      <div class="t"><a href="/api/files/${f.id}" target="_blank" rel="noopener">${esc(f.name)}</a>${f.section ? `<span class="badge kind">${esc(S.schema[f.section]?.label || f.section)}</span>` : ""}</div>
+      <div class="acts"><button class="btn sm danger" data-act="delfile" data-id="${f.id}">Delete</button></div>
+      <div class="d">${(f.size / 1024).toFixed(0)} KB · ${esc(f.uploadedBy)} · ${esc(new Date(f.uploadedAt).toLocaleString("en-US"))}</div>
+    </li>`).join("")}</ul>` : `<div class="empty">No documents yet.</div>`}</section>`;
+}
+
+async function renderActivity() {
+  const { entries } = await api("/api/audit");
+  return `<section class="block"><h2>Activity <span class="n">latest ${entries.length}</span></h2>
+    ${entries.length ? `<table class="log">${entries.map((e) => `<tr><td>${esc(new Date(e.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}</td><td><b>${esc(e.action)}</b> ${esc(S.schema[e.section]?.label || e.section)} — ${esc(e.label)}<br><span style="color:var(--muted)">${esc(e.by)}</span></td></tr>`).join("")}</table>` : `<div class="empty">No activity yet.</div>`}
+  </section>`;
+}
+
+function renderAsk() {
+  const ideas = ["What is Aaron allergic to?", "List his active insurance plans with member IDs and phone numbers.", "When was his last dental cleaning?", "Who are his doctors and how do I reach them?", "What's missing from his records?"];
+  return `${S.me.assistant ? "" : `<div class="notice">The assistant isn't switched on yet — the Worker needs its ANTHROPIC_API_KEY. Everything else works.</div>`}
+  <div class="chat" id="chat">${S.chat.length ? S.chat.map((m) => `<div class="msg ${m.role}"><div class="w">${m.role === "user" ? "You" : "MED"}</div><div class="b">${esc(m.text)}</div></div>`).join("") : `<p class="empty" style="padding:0">Ask about Aaron's records. Answers come only from what's stored here — nothing is searched online and conversations aren't saved.</p><div class="ideas">${ideas.map((q) => `<button data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>`}</div>
+  <div class="composer"><textarea id="q" placeholder="Ask a question…" rows="2"></textarea><button class="btn primary" id="askBtn">Ask</button></div>`;
+}
+
+async function render() {
+  renderTabs();
+  const m = $("#main");
+  if (S.tab === "summary") m.innerHTML = renderSummary();
+  else if (LAYOUT[S.tab]) m.innerHTML = noticeHtml() + LAYOUT[S.tab].map(([s, f, d, t]) => sectionBlock(s, f, d, t)).join("");
+  else if (S.tab === "documents") m.innerHTML = renderDocuments();
+  else if (S.tab === "activity") { m.innerHTML = `<p class="empty">Loading…</p>`; try { m.innerHTML = await renderActivity(); } catch (e) { m.innerHTML = `<div class="notice">${esc(e.message)}</div>`; } }
+  else if (S.tab === "ask") { m.innerHTML = renderAsk(); const c = $("#chat"); c.scrollTop = c.scrollHeight; }
+}
+
+function openForm(section, rec, defaults = {}) {
+  const def = S.schema[section];
+  const v = rec || defaults;
+  const input = (f) => {
+    const val = esc(v[f.key] ?? "");
+    if (f.type === "enum") return `<select name="${f.key}">${f.required ? "" : `<option value=""></option>`}${f.options.map((o) => `<option ${v[f.key] === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+    if (f.type === "long") return `<textarea name="${f.key}">${val}</textarea>`;
+    if (f.type === "date") return `<input name="${f.key}" value="${val}" placeholder="YYYY-MM-DD (or YYYY / YYYY-MM)" inputmode="numeric" />`;
+    return `<input name="${f.key}" value="${val}" />`;
+  };
+  $("#dlgForm").innerHTML = `<h3>${rec ? "Edit" : "Add"} — ${esc(def.label)}</h3>
+    ${def.fields.map((f) => `<label class="fld"><span>${esc(f.label)}${f.required ? " *" : ""}</span>${input(f)}</label>`).join("")}
+    <div class="err" id="dlgErr"></div>
+    <div class="dlg-acts"><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" id="dlgSave" value="save">Save</button></div>`;
+  $("#dlgSave").onclick = async (ev) => {
+    ev.preventDefault();
+    const data = Object.fromEntries(new FormData($("#dlgForm")));
+    try {
+      if (rec) {
+        const u = await api(`/api/records/${section}/${rec.id}`, { method: "PUT", body: JSON.stringify(data) });
+        S.records = S.records.map((r) => (r.id === u.id ? u : r));
+      } else {
+        S.records.push(await api("/api/records", { method: "POST", body: JSON.stringify({ section, ...data }) }));
+      }
+      $("#dlg").close(); S.notice = null; render();
+    } catch (e) { $("#dlgErr").textContent = e.message; }
+  };
+  $("#dlg").showModal();
+}
+
+async function upload(file, section = "", recordId = "") {
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) return say("Files must be 10 MB or smaller.");
+  const fd = new FormData(); fd.append("file", file); fd.append("section", section); fd.append("recordId", recordId);
+  try { S.files.unshift(await api("/api/files", { method: "POST", body: fd })); say(`Uploaded ${file.name}.`, true); }
+  catch (e) { say(e.message); }
+}
+
+document.addEventListener("click", async (ev) => {
+  const t = ev.target.closest("[data-tab],[data-act],[data-q],#askBtn");
+  if (!t) return;
+  if (t.dataset.tab) { S.tab = t.dataset.tab; S.notice = null; try { localStorage.setItem("med-tab", S.tab); } catch {} return render(); }
+  if (t.dataset.q) { $("#q").value = t.dataset.q; return sendAsk(); }
+  if (t.id === "askBtn") return sendAsk();
+  const { act, s, id } = t.dataset;
+  const rec = S.records.find((r) => r.id === id);
+  try {
+    if (act === "add") openForm(s, null, JSON.parse(t.dataset.def || "{}"));
+    if (act === "edit") openForm(s, rec);
+    if (act === "confirm") { const u = await api(`/api/records/${s}/${id}`, { method: "PUT", body: JSON.stringify({ reviewed: true }) }); S.records = S.records.map((r) => (r.id === id ? u : r)); render(); }
+    if (act === "del" && confirm("Delete this record? This can't be undone.")) { await api(`/api/records/${s}/${id}`, { method: "DELETE" }); S.records = S.records.filter((r) => r.id !== id); render(); }
+    if (act === "attach") { const inp = document.createElement("input"); inp.type = "file"; inp.onchange = () => upload(inp.files[0], s, id); inp.click(); }
+    if (act === "delfile" && confirm("Delete this document?")) { await api(`/api/files/${id}`, { method: "DELETE" }); S.files = S.files.filter((f) => f.id !== id); render(); }
+    if (act === "print") window.print();
+    if (act === "import") $("#importFile").click();
+    if (act === "export") {
+      const data = await api("/api/export");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+      a.download = `med-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    }
+  } catch (e) { say(e.message); }
+});
+
+document.addEventListener("change", (ev) => {
+  if (ev.target.id === "upFile") upload(ev.target.files[0], $("#upSection").value);
+});
+
+$("#importFile").addEventListener("change", async (ev) => {
+  const file = ev.target.files[0]; ev.target.value = "";
+  if (!file) return;
+  try {
+    const findings = JSON.parse(await file.text());
+    const out = await api("/api/import", { method: "POST", body: JSON.stringify(findings) });
+    await load();
+    const sk = out.skipped;
+    say(`Imported ${out.added} record${out.added === 1 ? "" : "s"} for review. Skipped: ${sk.duplicate} already on file, ${sk.invalid} incomplete, ${sk.sensitive} containing an SSN or birth date.${out.gaps.length ? " Not found: " + out.gaps.join("; ") + "." : ""}`, true);
+  } catch (e) { say(e.message.includes("JSON") ? "That file isn't valid findings JSON." : e.message); }
+});
+
+async function sendAsk() {
+  const q = $("#q").value.trim();
+  if (!q) return;
+  const history = S.chat.slice();
+  S.chat.push({ role: "user", text: q }, { role: "assistant", text: "Reading the records…" });
+  render();
+  try {
+    const { answer } = await api("/api/ask", { method: "POST", body: JSON.stringify({ question: q, history }) });
+    S.chat[S.chat.length - 1].text = answer;
+  } catch (e) { S.chat[S.chat.length - 1].text = "⚠ " + e.message; }
+  render();
+}
+document.addEventListener("keydown", (ev) => { if (ev.target.id === "q" && ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); sendAsk(); } });
+
+load().catch((e) => { $("#main").innerHTML = `<div class="notice">${esc(e.message)}</div>`; });
+</script>
+</body>
+</html>
