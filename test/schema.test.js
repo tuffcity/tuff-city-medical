@@ -63,3 +63,8 @@ test("date ranges keep the earliest date", () => {
 test("text with no usable date is still rejected", () => {
   assert.match(cleanRecord("immunizations", { name: "Flu", date: "sometime" }).error, /Date/);
 });
+
+test("last seen keeps the LATEST date of a range (exception to earliest rule)", () => {
+  const r = cleanRecord("providers", { name: "Dr X", lastSeen: "2016-02-11 to 2016-10-25" });
+  assert.equal(r.value.lastSeen, "2016-10-25");
+});

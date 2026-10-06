@@ -10,7 +10,7 @@ export const SECTIONS = {
   providers: { label: "Providers", title: "name", date: "lastSeen", fields: [
     f("name", "Name", { required: true }), f("kind", "Kind", { type: "enum", options: KIND }),
     f("specialty", "Specialty"), f("phone", "Phone"), f("address", "Address"), f("portal", "Patient portal"),
-    f("lastSeen", "Last seen", { type: "date" }), f("notes", "Notes", { type: "long" }) ] },
+    f("lastSeen", "Last seen", { type: "date", pick: "latest" }), f("notes", "Notes", { type: "long" }) ] },
   visits: { label: "Visits", title: "reason", date: "date", fields: [
     f("date", "Date", { type: "date", required: true }), f("kind", "Kind", { type: "enum", options: CARE }),
     f("provider", "Provider"), f("reason", "Reason"), f("notes", "Notes", { type: "long" }) ] },
@@ -43,9 +43,9 @@ export const SECTIONS = {
 const DATE_RE = /^\d{4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?)?$/;
 
 // Rule (Nanci, 2026-10-06): where a date field holds a range or several dates, keep the
-// EARLIEST. Accepts YYYY, YYYY-MM, YYYY-MM-DD and M/D/YYYY tokens; returns "" if none.
+// EARLIEST — except "Last seen" fields (pick: "latest"), which keep the LATEST. Accepts YYYY, YYYY-MM, YYYY-MM-DD and M/D/YYYY tokens; returns "" if none.
 const TOKEN_RE = /\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b|\b\d{4}(?:-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12]\d|3[01]))?)?\b/g;
-export function earliestDate(text) {
+export function earliestDate(text, pick = "earliest") {
   const v = String(text ?? "").trim();
   if (!v || DATE_RE.test(v)) return v;
   const found = [];
@@ -54,7 +54,7 @@ export function earliestDate(text) {
   }
   const valid = found.filter((d) => DATE_RE.test(d)).sort();
   // A range/list needs 2+ dates; a lone token only counts if it is the whole value (M/D/YYYY).
-  if (valid.length >= 2) return valid[0];
+  if (valid.length >= 2) return pick === "latest" ? valid[valid.length - 1] : valid[0];
   if (valid.length === 1 && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) return valid[0];
   return v;
 }
@@ -73,7 +73,7 @@ export function cleanRecord(section, input, { partial = false } = {}) {
       continue;
     }
     let v = String(src[fd.key]).trim().slice(0, fd.type === "long" ? CAP.long : CAP.text);
-    if (fd.type === "date") v = earliestDate(v);
+    if (fd.type === "date") v = earliestDate(v, fd.pick);
     if (fd.required && !v) return { error: `${fd.label} is required.` };
     if (v && fd.type === "date" && !DATE_RE.test(v)) return { error: `${fd.label} must be YYYY, YYYY-MM or YYYY-MM-DD.` };
     if (v && fd.type === "enum" && !fd.options.includes(v)) return { error: `${fd.label} must be one of: ${fd.options.join(", ")}.` };

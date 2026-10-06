@@ -24,7 +24,7 @@ function lenient(section, item) {
     const v = out[fd.key];
     if (v == null) continue;
     let s = String(v).trim();
-    if (fd.type === "date") s = out[fd.key] = earliestDate(s);
+    if (fd.type === "date") s = out[fd.key] = earliestDate(s, fd.pick);
     if (fd.type === "enum" && !fd.options.includes(s) && !fd.required) out[fd.key] = "";
     if (fd.type === "date" && s && !DATE_RE.test(s)) out[fd.key] = "";
   }
