@@ -59,6 +59,7 @@
   .row { padding: 11px 16px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; }
   .row:first-child { border-top: 0; }
   .row .t { font-weight: 600; overflow-wrap: anywhere; }
+  .row .dt { color: var(--accent); font-weight: 600; margin-right: 8px; white-space: nowrap; }
   .row .d { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; grid-column: 1; }
   .row .d .k { color: var(--ink); opacity: .7; }
   .row .acts { grid-row: 1 / span 2; grid-column: 2; display: flex; gap: 6px; align-items: start; flex-wrap: wrap; justify-content: end; }
@@ -184,13 +185,16 @@ async function load() {
 const unreviewed = () => S.records.filter((r) => r.reviewed === false);
 const bySection = (s) => S.records.filter((r) => r.section === s);
 
-function sortRecs(section, list) {
-  const def = S.schema[section];
-  const dk = def.date;
-  return list.slice().sort((a, b) =>
-    (a.reviewed === false) - (b.reviewed === false) ||
-    (dk ? String(b[dk] || "").localeCompare(String(a[dk] || "")) : String(a[def.title] || "").localeCompare(String(b[def.title] || ""))));
-}
+// Newest first by the record's own date (visit/procedure/claim/shot date, provider's
+// last-seen, condition's since, plan's effective date). Undated records go last, A–Z.
+const recDate = (r) => String(r[S.schema[r.section]?.date] || "");
+const recTitle = (r) => String(r[S.schema[r.section]?.title] || r.name || "");
+const byDate = (a, b) => {
+  const da = recDate(a), db = recDate(b);
+  if (da !== db) return !da ? 1 : !db ? -1 : db.localeCompare(da);
+  return recTitle(a).localeCompare(recTitle(b));
+};
+function sortRecs(section, list) { return list.slice().sort(byDate); }
 
 function renderTabs() {
   const n = unreviewed().length;
@@ -211,7 +215,7 @@ function recordRow(r) {
     .map((f) => `<span class="k">${esc(f.label)}:</span> ${esc(f.type === "date" ? fmtDate(r[f.key]) : r[f.key])}`).join(" · ");
   const files = S.files.filter((f) => f.recordId === r.id);
   return `<li class="row">
-    <div class="t">${esc(title)}${r.section === "providers" && r.kind ? `<span class="badge kind">${esc(r.kind)}</span>` : ""}${r.reviewed === false ? `<span class="badge unrev">Unreviewed</span>` : ""}</div>
+    <div class="t">${recDate(r) ? `<span class="dt">${esc(fmtDate(recDate(r)))}</span>` : ""}${esc(title)}${r.section === "providers" && r.kind ? `<span class="badge kind">${esc(r.kind)}</span>` : ""}${r.reviewed === false ? `<span class="badge unrev">Unreviewed</span>` : ""}</div>
     <div class="acts noprint">
       ${r.reviewed === false ? `<button class="btn sm primary" data-act="confirm" data-s="${r.section}" data-id="${r.id}">Confirm</button>` : ""}
       <button class="btn sm" data-act="edit" data-s="${r.section}" data-id="${r.id}">Edit</button>
@@ -264,7 +268,7 @@ function renderSummary() {
       <div><h3>Doctors &amp; dentists</h3>${li(provs, (p) => `${esc(p.name)}${p.specialty ? ` (${esc(p.specialty)})` : p.kind ? ` (${esc(p.kind)})` : ""}${p.phone ? ` — ${esc(p.phone)}` : ""}${flag(p)}`)}</div>
     </div>
   </div>
-  ${n ? `<section class="block"><h2>Needs review <span class="n">${n}</span></h2><ul class="rows">${unreviewed().map((r) => recordRow(r).replace('<div class="t">', `<div class="t"><span class="badge kind">${esc(S.schema[r.section].label)}</span> `)).join("")}</ul></section>` : ""}
+  ${n ? `<section class="block"><h2>Needs review <span class="n">${n}</span></h2><ul class="rows">${unreviewed().sort(byDate).map((r) => recordRow(r).replace('<div class="t">', `<div class="t"><span class="badge kind">${esc(S.schema[r.section].label)}</span> `)).join("")}</ul></section>` : ""}
   ${sectionBlock("contacts")}`;
 }
 

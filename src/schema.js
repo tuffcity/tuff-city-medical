@@ -7,7 +7,7 @@ const CARE = ["medical", "dental"];
 const f = (key, label, extra = {}) => ({ key, label, type: "text", ...extra });
 
 export const SECTIONS = {
-  providers: { label: "Providers", title: "name", fields: [
+  providers: { label: "Providers", title: "name", date: "lastSeen", fields: [
     f("name", "Name", { required: true }), f("kind", "Kind", { type: "enum", options: KIND }),
     f("specialty", "Specialty"), f("phone", "Phone"), f("address", "Address"), f("portal", "Patient portal"),
     f("lastSeen", "Last seen", { type: "date" }), f("notes", "Notes", { type: "long" }) ] },
@@ -17,7 +17,7 @@ export const SECTIONS = {
   procedures: { label: "Procedures", title: "name", date: "date", fields: [
     f("name", "Procedure", { required: true }), f("date", "Date", { type: "date" }),
     f("kind", "Kind", { type: "enum", options: CARE }), f("provider", "Provider"), f("notes", "Notes", { type: "long" }) ] },
-  conditions: { label: "Conditions", title: "name", fields: [
+  conditions: { label: "Conditions", title: "name", date: "since", fields: [
     f("name", "Condition", { required: true }), f("since", "Since", { type: "date" }),
     f("status", "Status", { type: "enum", options: ["active", "resolved"] }), f("notes", "Notes", { type: "long" }) ] },
   medications: { label: "Medications", title: "name", fields: [
@@ -28,7 +28,7 @@ export const SECTIONS = {
     f("severity", "Severity", { type: "enum", options: ["mild", "moderate", "severe"] }) ] },
   immunizations: { label: "Immunizations", title: "name", date: "date", fields: [
     f("name", "Vaccine", { required: true }), f("date", "Date", { type: "date" }), f("notes", "Notes", { type: "long" }) ] },
-  insurance: { label: "Insurance plans", title: "carrier", fields: [
+  insurance: { label: "Insurance plans", title: "carrier", date: "effective", fields: [
     f("type", "Type", { type: "enum", required: true, options: ["medical", "dental", "vision", "medicare", "supplement", "partD", "other"] }),
     f("carrier", "Carrier", { required: true }), f("plan", "Plan"), f("memberId", "Member ID"), f("groupNumber", "Group #"),
     f("phone", "Member services phone"), f("effective", "Effective", { type: "date" }), f("renewal", "Renewal", { type: "date" }),
