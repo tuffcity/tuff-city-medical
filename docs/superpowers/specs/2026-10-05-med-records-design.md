@@ -32,6 +32,7 @@ One private place that holds Aaron Fuchs's complete medical history, dental hist
 | E5 | Assistant conversations are **not stored** | Nothing to leak later; the records themselves are the source of truth |
 | E6 | **No service worker / offline cache**; every response is `Cache-Control: no-store` | Medical data must not linger on a shared or lost device |
 | E7 | Every create / update / delete / import writes an **audit entry** (who, when, what) | Medical records need a change trail |
+| E9 | **Date ranges keep the earliest date** (Nanci, 2026-10-06). Any date field given a range or several dates (`2019-2021`, `2019-01-01 to 2024-12-31`, `3/14/2024 - 5/1/2024`) stores the earliest; a single `M/D/YYYY` is converted to `YYYY-MM-DD`. Applied server-side on every save and import (`earliestDate` in `src/schema.js`) | One consistent rule for sorting and history |
 | E8 | Imported records carry `reviewed:false` and a visible **Unreviewed** badge until confirmed | Gmail-derived data can be wrong or belong to someone else |
 
 ## 4. Architecture

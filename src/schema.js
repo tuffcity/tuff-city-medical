@@ -41,6 +41,23 @@ export const SECTIONS = {
 };
 
 const DATE_RE = /^\d{4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?)?$/;
+
+// Rule (Nanci, 2026-10-06): where a date field holds a range or several dates, keep the
+// EARLIEST. Accepts YYYY, YYYY-MM, YYYY-MM-DD and M/D/YYYY tokens; returns "" if none.
+const TOKEN_RE = /\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b|\b\d{4}(?:-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12]\d|3[01]))?)?\b/g;
+export function earliestDate(text) {
+  const v = String(text ?? "").trim();
+  if (!v || DATE_RE.test(v)) return v;
+  const found = [];
+  for (const m of v.matchAll(TOKEN_RE)) {
+    found.push(m[3] ? `${m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}` : m[0]);
+  }
+  const valid = found.filter((d) => DATE_RE.test(d)).sort();
+  // A range/list needs 2+ dates; a lone token only counts if it is the whole value (M/D/YYYY).
+  if (valid.length >= 2) return valid[0];
+  if (valid.length === 1 && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) return valid[0];
+  return v;
+}
 const CAP = { text: 500, long: 4000, date: 10, enum: 40 };
 
 // → { value } or { error }. `partial` = update: only fields present are checked.
@@ -55,7 +72,8 @@ export function cleanRecord(section, input, { partial = false } = {}) {
       if (fd.required && !partial) return { error: `${fd.label} is required.` };
       continue;
     }
-    const v = String(src[fd.key]).trim().slice(0, fd.type === "long" ? CAP.long : CAP.text);
+    let v = String(src[fd.key]).trim().slice(0, fd.type === "long" ? CAP.long : CAP.text);
+    if (fd.type === "date") v = earliestDate(v);
     if (fd.required && !v) return { error: `${fd.label} is required.` };
     if (v && fd.type === "date" && !DATE_RE.test(v)) return { error: `${fd.label} must be YYYY, YYYY-MM or YYYY-MM-DD.` };
     if (v && fd.type === "enum" && !fd.options.includes(v)) return { error: `${fd.label} must be one of: ${fd.options.join(", ")}.` };

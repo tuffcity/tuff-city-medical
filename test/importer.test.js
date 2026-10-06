@@ -12,7 +12,7 @@ const findings = {
   allergies: [{ name: "Penicillin", reaction: "hives", source: "s" }, { name: "", source: "blank name skipped" }],
   insurance: [{ type: "medicare", carrier: "Medicare", memberId: "1EG4-TE5-MK73", source: "s" }, { type: "dental", carrier: "Delta", notes: "SSN 123-45-6789", source: "bad" }],
   medications: [{ name: "Lisinopril", status: "unknown", source: "s" }],
-  immunizations: [{ name: "Flu", date: "10/2/2024", source: "bad date → kept without date" }],
+  immunizations: [{ name: "Flu", date: "10/2/2024", source: "US date → converted" }],
   gaps: ["no dental x-rays found"],
   junk: [{ x: 1 }],
 };
@@ -26,7 +26,7 @@ test("maps findings to reviewed:false records with sources", () => {
   assert.equal(by("insurance").length, 1, "guard-failing item skipped");
   assert.ok(plan.records.every((r) => r.fields.reviewed === false && r.fields.source));
   assert.equal(by("medications")[0].fields.status, "", "unknown enum value blanked, not rejected");
-  assert.equal(by("immunizations")[0].fields.date, "", "bad date blanked");
+  assert.equal(by("immunizations")[0].fields.date, "2024-10-02", "US date converted");
   assert.equal(plan.skipped.sensitive, 1);
   assert.equal(plan.skipped.invalid, 1);
   assert.equal(plan.skipped.duplicate, 1);
@@ -46,4 +46,9 @@ test("garbage input yields nothing and does not throw", () => {
     const p = planImport(bad, []);
     assert.equal(p.records.length, 0);
   }
+});
+
+test("import applies the earliest-date rule to ranges", () => {
+  const p = planImport({ insurance: [{ type: "medicare", carrier: "Empire", effective: "2019-01-01 to 2024-12-31", source: "s" }] }, []);
+  assert.equal(p.records[0].fields.effective, "2019-01-01");
 });

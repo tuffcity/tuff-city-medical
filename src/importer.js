@@ -2,7 +2,7 @@
 // reviewed:false so a person confirms it. Lenient on shape (bad enum/date values are
 // blanked, not rejected), strict on privacy (an item carrying an SSN/DOB is skipped whole).
 
-import { SECTIONS, cleanRecord } from "./schema.js";
+import { SECTIONS, cleanRecord, earliestDate } from "./schema.js";
 import { findSensitive } from "./guard.js";
 
 // Fields that identify "the same thing" within a section.
@@ -23,7 +23,8 @@ function lenient(section, item) {
   for (const fd of SECTIONS[section].fields) {
     const v = out[fd.key];
     if (v == null) continue;
-    const s = String(v).trim();
+    let s = String(v).trim();
+    if (fd.type === "date") s = out[fd.key] = earliestDate(s);
     if (fd.type === "enum" && !fd.options.includes(s) && !fd.required) out[fd.key] = "";
     if (fd.type === "date" && s && !DATE_RE.test(s)) out[fd.key] = "";
   }
