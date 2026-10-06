@@ -1,5 +1,5 @@
 name = "tuff-city-medical"
-main = "worker.js"
+main = "src/entry.js"
 compatibility_date = "2025-06-01"
 
 # No workers.dev routes — the only public entry is the Access-gated custom domain.
@@ -18,11 +18,11 @@ ALLOWED_EMAILS = "nanci@tuffcity.com, aaronf@tuffcity.com"
 
 [[kv_namespaces]]
 binding = "RECORDS"
-# Created by `npx wrangler kv namespace create RECORDS` — see docs/DEPLOY-STATE.md.
-id = "REPLACE_WITH_RECORDS_NAMESPACE_ID"
+# tuff-city-medical-RECORDS (created 2026-10-06)
+id = "ad60b36992244b3ca5371cc0650241da"
 
-[assets]
-directory = "./public"
-binding = "ASSETS"
-not_found_handling = "single-page-application"
-run_worker_first = true
+# Page files are bundled into the script (see src/entry.js) — no Workers Assets upload.
+[[rules]]
+type = "Text"
+globs = ["**/*.html", "**/*.svg", "**/*.json.txt"]
+fallthrough = true
