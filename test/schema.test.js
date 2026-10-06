@@ -68,3 +68,8 @@ test("last seen keeps the LATEST date of a range (exception to earliest rule)", 
   const r = cleanRecord("providers", { name: "Dr X", lastSeen: "2016-02-11 to 2016-10-25" });
   assert.equal(r.value.lastSeen, "2016-10-25");
 });
+
+test("medications carry a Started / prescribed date used for sorting", () => {
+  assert.equal(SECTIONS.medications.date, "since");
+  assert.equal(cleanRecord("medications", { name: "Trazodone", since: "2024-12" }).value.since, "2024-12");
+});

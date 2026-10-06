@@ -20,8 +20,8 @@ export const SECTIONS = {
   conditions: { label: "Conditions", title: "name", date: "since", fields: [
     f("name", "Condition", { required: true }), f("since", "Since", { type: "date" }),
     f("status", "Status", { type: "enum", options: ["active", "resolved"] }), f("notes", "Notes", { type: "long" }) ] },
-  medications: { label: "Medications", title: "name", fields: [
-    f("name", "Medication", { required: true }), f("dose", "Dose / how often"), f("prescriber", "Prescriber"),
+  medications: { label: "Medications", title: "name", date: "since", fields: [
+    f("name", "Medication", { required: true }), f("since", "Started / prescribed", { type: "date" }), f("dose", "Dose / how often"), f("prescriber", "Prescriber"),
     f("pharmacy", "Pharmacy"), f("status", "Status", { type: "enum", options: ["active", "past"] }), f("notes", "Notes", { type: "long" }) ] },
   allergies: { label: "Allergies", title: "name", fields: [
     f("name", "Allergy", { required: true }), f("reaction", "Reaction"),
