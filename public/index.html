@@ -129,6 +129,21 @@
   .empty { padding: 18px; color: var(--muted); font-size: 15px; text-align: center; }
   .legend { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; margin: -4px 4px 12px; }
 
+  /* ── Costs ── */
+  .cost-card { padding: 14px 16px; margin-bottom: 14px; }
+  .cost-h { font-weight: 700; display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+  .cost-h span { font-size: 13px; color: var(--muted); font-weight: 600; margin-left: auto; }
+  .cost-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  @media (min-width: 640px) { .cost-card .cost-grid { grid-template-columns: repeat(4, 1fr); } }
+  .cost-cell { background: var(--bg); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+  .cost-cell span { display: block; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .cost-cell b { font-size: 17px; overflow-wrap: anywhere; }
+  .cost-cell.due b { color: var(--danger); }
+  .cost-note { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+  .cost-detail { background: var(--soft); border-radius: 14px; padding: 12px; margin-bottom: 12px; }
+  .cost-detail .cost-cell { background: var(--panel); }
+  .breakdown { margin-top: 10px; background: var(--panel); border-radius: 10px; padding: 10px 12px; font: 13.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+
   /* ── Sheet (detail / edit / review) ── */
   dialog.sheet { border: 0; padding: 0; margin: auto auto 0; width: 100%; max-width: 640px; max-height: 92dvh; border-radius: 22px 22px 0 0; background: var(--panel); color: var(--ink); overflow: hidden; }
   @media (min-width: 700px) { dialog.sheet { margin: auto; border-radius: 22px; } }
@@ -239,18 +254,20 @@ const LAYOUT = {
     ["providers", (r) => !isDental(r), { kind: "medical" }, "Doctors & providers"],
     ["visits", (r) => !isDental(r), { kind: "medical" }],
     ["procedures", (r) => !isDental(r), { kind: "medical" }],
+    ["plans", (r) => !isDental(r), { kind: "medical" }, "Treatment plans & quotes"],
     ["immunizations"],
   ],
   dental: [
     ["providers", isDental, { kind: "dental" }, "Dentists & specialists"],
     ["visits", isDental, { kind: "dental" }, "Dental visits & cleanings"],
+    ["plans", isDental, { kind: "dental" }, "Treatment plans & quotes"],
     ["procedures", isDental, { kind: "dental" }, "Dental procedures"],
   ],
   insurance: [["insurance"], ["claims"]],
 };
 // The one or two details shown under each record's title in a list.
 const SUB = {
-  providers: ["specialty", "phone"], visits: ["provider"], procedures: ["provider"], conditions: ["status"],
+  providers: ["specialty", "phone"], visits: ["provider", "charged"], procedures: ["provider", "charged"], plans: ["total", "status"], conditions: ["status"],
   medications: ["dose", "status"], allergies: ["reaction", "severity"], immunizations: ["notes"],
   insurance: ["plan", "memberId"], claims: ["amount", "status"], contacts: ["relation", "phone"],
 };
@@ -398,10 +415,26 @@ function toolsHtml(placeholder) {
   </div>`;
 }
 
+// Cost summary for a tab, from its visits (where charges are recorded).
+const money = (v) => { const m = String(v || "").replace(/,/g, "").match(/-?\$?\s*(\d+(?:\.\d+)?)/); return m ? Number(m[1]) : null; };
+const usd = (n) => "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function costSummary(tab) {
+  const visits = S.records.filter((r) => r.section === "visits" && (tab === "dental" ? isDental(r) : !isDental(r)));
+  if (!visits.length) return "";
+  const sum = (k) => visits.reduce((t, r) => t + (money(r[k]) || 0), 0);
+  const priced = visits.filter((r) => money(r.charged) != null).length;
+  const cell = (lbl, n, cls = "") => `<div class="cost-cell ${cls}"><span>${lbl}</span><b>${usd(n)}</b></div>`;
+  return `<div class="panel cost-card">
+    <div class="cost-h">${tab === "dental" ? "🦷 Dental" : "🩺 Medical"} costs <span>${priced} of ${visits.length} visits priced</span></div>
+    <div class="cost-grid">${cell("Charged", sum("charged"))}${cell("Insurance paid", sum("insurancePaid"))}${cell("Aaron paid", sum("aaronPaid"))}${cell("Outstanding", sum("balance"), sum("balance") > 0 ? "due" : "")}</div>
+    <div class="cost-note">Totals add up what's recorded on each visit. Tap a visit to see its breakdown.</div>
+  </div>`;
+}
+
 function renderSection(tab) {
   const title = { medical: "Medical", dental: "Dental", insurance: "Insurance" }[tab];
   const groups = LAYOUT[tab].map(([s, f, d, t]) => groupHtml(s, f, d, t)).join("");
-  return `<h2 class="page">${title}</h2>${toolsHtml("Search " + title.toLowerCase() + "…")}
+  return `<h2 class="page">${title}</h2>${tab !== "insurance" ? costSummary(tab) : ""}${toolsHtml("Search " + title.toLowerCase() + "…")}
     <div class="legend"><span class="dot"></span> needs review · newest first</div>
     ${groups || `<div class="empty">No matches.</div>`}`;
 }
@@ -478,12 +511,15 @@ function openSheet(head, body, foot) {
 }
 sheet.addEventListener("click", (e) => { if (e.target === sheet) sheet.close(); });
 
+const COST_KEYS = ["charged", "allowed", "insurancePaid", "aaronPaid", "balance", "paymentMethod", "billingStatus"];
 function detailBody(r) {
   const def = S.schema[r.section];
-  const rows = def.fields.filter((f) => r[f.key]).map((f) => `<div><dt>${esc(f.label)}</dt><dd>${f.key === "phone" ? `<a href="tel:${esc(r[f.key])}">${esc(r[f.key])}</a>` : esc(f.type === "date" ? fmtDate(r[f.key]) : r[f.key])}</dd></div>`).join("");
+  const costs = COST_KEYS.filter((k) => r[k] && def.fields.some((f) => f.key === k));
+  const costHtml = costs.length ? `<div class="cost-detail"><div class="cost-h">💵 Costs</div><div class="cost-grid">${costs.map((k) => `<div class="cost-cell ${k === "balance" && money(r[k]) > 0 ? "due" : ""}"><span>${esc(def.fields.find((f) => f.key === k).label)}</span><b>${esc(r[k])}</b></div>`).join("")}</div>${r.breakdown ? `<div class="breakdown">${esc(r.breakdown)}</div>` : ""}</div>` : "";
+  const rows = def.fields.filter((f) => r[f.key] && !COST_KEYS.includes(f.key) && f.key !== "breakdown").map((f) => `<div><dt>${esc(f.label)}</dt><dd>${f.key === "phone" ? `<a href="tel:${esc(r[f.key])}">${esc(r[f.key])}</a>` : esc(f.type === "date" ? fmtDate(r[f.key]) : r[f.key])}</dd></div>`).join("");
   const files = S.files.filter((f) => f.recordId === r.id);
   return `${r.reviewed === false ? `<div class="status unrev">Needs review — found automatically, not yet confirmed.</div>` : `<div class="status ok">✓ Confirmed</div>`}
-    <dl class="fields">${rows}</dl>
+    ${costHtml}<dl class="fields">${rows}${!costs.length && r.breakdown ? `<div><dt>Itemised breakdown</dt><dd>${esc(r.breakdown)}</dd></div>` : ""}</dl>
     ${files.length ? `<div class="files" style="margin-top:10px"><b style="font-size:13px;color:var(--muted)">Attached</b>${files.map((f) => `<a href="/api/files/${f.id}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a>`).join("")}</div>` : ""}
     ${r.source ? `<div class="src">Found in: ${esc(r.source)}</div>` : ""}`;
 }

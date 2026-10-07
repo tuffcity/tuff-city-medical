@@ -73,3 +73,20 @@ test("medications carry a Started / prescribed date used for sorting", () => {
   assert.equal(SECTIONS.medications.date, "since");
   assert.equal(cleanRecord("medications", { name: "Trazodone", since: "2024-12" }).value.since, "2024-12");
 });
+
+test("visits and procedures carry cost fields and an itemised breakdown", () => {
+  const v = cleanRecord("visits", { date: "2022-06-27", kind: "dental", charged: "$1,245.00", insurancePaid: "$0.00", aaronPaid: "$622.50",
+    balance: "$622.50", codes: "D2740, D2954", teeth: "#30", paymentMethod: "Visa", breakdown: "D2740 – crown – #30 – $1,050\nD2954 – post – #30 – $195", billingStatus: "disputed" });
+  assert.equal(v.error, undefined);
+  assert.equal(v.value.charged, "$1,245.00");
+  assert.match(v.value.breakdown, /D2954/);
+  const p = cleanRecord("procedures", { name: "Rezum", charged: "$4,000", allowed: "$1,200", claimNumber: "12345" });
+  assert.equal(p.value.allowed, "$1,200");
+});
+
+test("treatment plans & quotes section", () => {
+  assert.equal(SECTIONS.plans.date, "date");
+  const r = cleanRecord("plans", { date: "2022-02-04", provider: "Union Square Dental", kind: "dental", items: "Crown #30 – $1,500", total: "$1,500", status: "partly done" });
+  assert.equal(r.error, undefined);
+  assert.match(cleanRecord("plans", { date: "2022", provider: "X", status: "maybe" }).error, /Status/);
+});

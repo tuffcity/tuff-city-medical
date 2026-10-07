@@ -9,7 +9,7 @@ import { findSensitive } from "./guard.js";
 const IDENTITY = {
   providers: ["name"], visits: ["date", "provider"], procedures: ["name", "date"],
   conditions: ["name"], medications: ["name"], allergies: ["name"], immunizations: ["name", "date"],
-  insurance: ["type", "carrier", "memberId"], claims: ["date", "provider", "amount"], contacts: ["name"],
+  insurance: ["type", "carrier", "memberId"], plans: ["date", "provider"], claims: ["date", "provider", "amount"], contacts: ["name"],
 };
 
 const norm = (v) => String(v ?? "").toLowerCase().replace(/\s+/g, " ").trim();

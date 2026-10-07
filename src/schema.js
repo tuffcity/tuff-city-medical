@@ -6,6 +6,15 @@ const CARE = ["medical", "dental"];
 
 const f = (key, label, extra = {}) => ({ key, label, type: "text", ...extra });
 
+
+const COST = (dental) => [
+  f("charged", "Charged (billed)"), f("allowed", "Plan allowed"), f("insurancePaid", "Insurance paid"),
+  f("aaronPaid", "Aaron paid"), f("paymentMethod", "Paid how"), f("balance", "Balance / outstanding"),
+  f("billingStatus", "Billing status"), f("codes", dental ? "Procedure codes (CDT / CPT)" : "Procedure codes (CPT)"),
+  ...(dental ? [f("teeth", "Teeth")] : []), f("claimNumber", "Claim #"),
+  f("breakdown", "Itemised breakdown", { type: "long" }),
+];
+
 export const SECTIONS = {
   providers: { label: "Providers", title: "name", date: "lastSeen", fields: [
     f("name", "Name", { required: true }), f("kind", "Kind", { type: "enum", options: KIND }),
@@ -13,10 +22,16 @@ export const SECTIONS = {
     f("lastSeen", "Last seen", { type: "date", pick: "latest" }), f("notes", "Notes", { type: "long" }) ] },
   visits: { label: "Visits", title: "reason", date: "date", fields: [
     f("date", "Date", { type: "date", required: true }), f("kind", "Kind", { type: "enum", options: CARE }),
-    f("provider", "Provider"), f("reason", "Reason"), f("notes", "Notes", { type: "long" }) ] },
+    f("provider", "Provider"), f("reason", "Reason"), f("procedures", "What was done", { type: "long" }),
+    ...COST(true), f("notes", "Notes", { type: "long" }) ] },
   procedures: { label: "Procedures", title: "name", date: "date", fields: [
     f("name", "Procedure", { required: true }), f("date", "Date", { type: "date" }),
-    f("kind", "Kind", { type: "enum", options: CARE }), f("provider", "Provider"), f("notes", "Notes", { type: "long" }) ] },
+    f("kind", "Kind", { type: "enum", options: CARE }), f("provider", "Provider"), ...COST(true), f("notes", "Notes", { type: "long" }) ] },
+  plans: { label: "Treatment plans & quotes", title: "provider", date: "date", fields: [
+    f("date", "Date", { type: "date", required: true }), f("provider", "Provider", { required: true }),
+    f("kind", "Kind", { type: "enum", options: CARE }), f("items", "Proposed work & prices", { type: "long" }),
+    f("total", "Total quoted"), f("status", "Status", { type: "enum", options: ["done", "partly done", "not done", "unknown"] }),
+    f("notes", "Notes", { type: "long" }) ] },
   conditions: { label: "Conditions", title: "name", date: "since", fields: [
     f("name", "Condition", { required: true }), f("since", "Since", { type: "date" }),
     f("status", "Status", { type: "enum", options: ["active", "resolved"] }), f("notes", "Notes", { type: "long" }) ] },
