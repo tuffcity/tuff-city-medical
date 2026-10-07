@@ -9,7 +9,7 @@ Private records app for Aaron Fuchs, linked from the **MED** chip on the GM Comm
 - **Privacy:** SSNs and birth dates are refused on every write and question; every response is `no-store`; the assistant answers from stored records only (no web search) and conversations aren't saved
 - **Intake:** manual entry + uploads · Import of a Gmail/Drive findings JSON (records arrive **Unreviewed** until confirmed) · Ask MED
 - **Records:** 130 imported from Aaron's Gmail + Drive "Medical" folder on 2026-10-06; dates filled for every dated section (sources and confidence in each record's notes)
-- **Design & plan:** `docs/superpowers/specs/`, `docs/superpowers/plans/` · **Deploy state:** `docs/DEPLOY-STATE.md`
+- **Cheat sheet (how to use it):** `docs/CHEAT-SHEET.md` · **Design & plan:** `docs/superpowers/specs/`, `docs/superpowers/plans/` · **Deploy state:** `docs/DEPLOY-STATE.md`
 
 ## Develop
 
