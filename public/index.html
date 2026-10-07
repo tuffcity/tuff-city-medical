@@ -419,15 +419,20 @@ function toolsHtml(placeholder) {
 const money = (v) => { const m = String(v || "").replace(/,/g, "").match(/-?\$?\s*(\d+(?:\.\d+)?)/); return m ? Number(m[1]) : null; };
 const usd = (n) => "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 function costSummary(tab) {
-  const visits = S.records.filter((r) => r.section === "visits" && (tab === "dental" ? isDental(r) : !isDental(r)));
+  const mine = (r) => (tab === "dental" ? isDental(r) : !isDental(r));
+  const visits = S.records.filter((r) => r.section === "visits" && mine(r));
   if (!visits.length) return "";
-  const sum = (k) => visits.reduce((t, r) => t + (money(r[k]) || 0), 0);
-  const priced = visits.filter((r) => money(r.charged) != null).length;
+  // A procedure's costs count only when no visit that day carries any.
+  const costed = (r) => ["charged", "insurancePaid", "aaronPaid", "balance"].some((k) => money(r[k]) != null);
+  const procs = S.records.filter((r) => r.section === "procedures" && mine(r) && costed(r) && !visits.some((v) => v.date === r.date && costed(v)));
+  const items = [...visits, ...procs];
+  const sum = (k) => items.reduce((t, r) => t + (money(r[k]) || 0), 0);
+  const priced = visits.filter(costed).length;
   const cell = (lbl, n, cls = "") => `<div class="cost-cell ${cls}"><span>${lbl}</span><b>${usd(n)}</b></div>`;
   return `<div class="panel cost-card">
-    <div class="cost-h">${tab === "dental" ? "🦷 Dental" : "🩺 Medical"} costs <span>${priced} of ${visits.length} visits priced</span></div>
+    <div class="cost-h">${tab === "dental" ? "🦷 Dental" : "🩺 Medical"} costs <span>${priced} of ${visits.length} visits have cost info</span></div>
     <div class="cost-grid">${cell("Charged", sum("charged"))}${cell("Insurance paid", sum("insurancePaid"))}${cell("Aaron paid", sum("aaronPaid"))}${cell("Outstanding", sum("balance"), sum("balance") > 0 ? "due" : "")}</div>
-    <div class="cost-note">Totals add up what's recorded on each visit. Tap a visit to see its breakdown.</div>
+    <div class="cost-note">Totals add up what's recorded (quotes excluded). Tap a visit for its breakdown.</div>
   </div>`;
 }
 
