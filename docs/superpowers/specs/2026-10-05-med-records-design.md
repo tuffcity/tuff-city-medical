@@ -1,6 +1,6 @@
 # MED — Aaron's medical, dental & insurance records
 
-**Date:** 2026-10-05 · **App:** med.tuffcityrecords.com (`tuff-city-medical` Worker) · **Status:** decisions approved in chat by Nanci, 2026-10-05
+**Date:** 2026-10-05 · **App:** med.tuffcityrecords.com (`tuff-city-medical` Worker) · **Status:** live since 2026-10-06 · decisions approved in chat by Nanci (2026-10-05 → 10-07)
 
 ## 1. Goal
 
@@ -32,8 +32,10 @@ One private place that holds Aaron Fuchs's complete medical history, dental hist
 | E5 | Assistant conversations are **not stored** | Nothing to leak later; the records themselves are the source of truth |
 | E6 | **No service worker / offline cache**; every response is `Cache-Control: no-store` | Medical data must not linger on a shared or lost device |
 | E7 | Every create / update / delete / import writes an **audit entry** (who, when, what) | Medical records need a change trail |
-| E9 | **Date ranges keep the earliest date** (Nanci, 2026-10-06). Any date field given a range or several dates (`2019-2021`, `2019-01-01 to 2024-12-31`, `3/14/2024 - 5/1/2024`) stores the earliest — **except "Last seen", which stores the latest** (Nanci, 2026-10-06); a single `M/D/YYYY` is converted to `YYYY-MM-DD`. Applied server-side on every save and import (`earliestDate` in `src/schema.js`) | One consistent rule for sorting and history |
 | E8 | Imported records carry `reviewed:false` and a visible **Unreviewed** badge until confirmed | Gmail-derived data can be wrong or belong to someone else |
+| E9 | **Date ranges keep the earliest date** (Nanci, 2026-10-06). Any date field given a range or several dates (`2019-2021`, `2019-01-01 to 2024-12-31`, `3/14/2024 - 5/1/2024`) stores the earliest — **except "Last seen", which stores the latest** (Nanci, 2026-10-06); a single `M/D/YYYY` is converted to `YYYY-MM-DD`. Applied server-side on every save and import (`earliestDate` in `src/schema.js`) | One consistent rule for sorting and history |
+| E10 | **Every list sorts by the record's own date, newest first**; undated records last, A–Z (Nanci, 2026-10-06). Sort date per section: visits/procedures/immunizations/claims → date · providers → last seen · conditions → since · medications → started/prescribed · insurance → effective. Allergies and contacts have no date and sort A–Z | History reads top-down, most recent first |
+| E11 | **Phone-first UI** (Nanci, 2026-10-07): bottom tab bar, tap-to-open record sheets, search + To-review filter on every list, one-at-a-time review mode | Nanci and Aaron use MED mostly on phones |
 
 ## 4. Architecture
 
@@ -48,8 +50,10 @@ GM dashboard ──MED chip──▶ med.tuffcityrecords.com
                         ├─ /api/import   findings JSON ───┤
                         ├─ /api/audit, /api/export ───────┘
                         ├─ /api/ask  ──▶ Claude (records as context, no tools)
-                        └─ static UI (public/)
+                        └─ page (public/, bundled into the script by src/entry.js)
 ```
+
+Deploy = one script upload: `src/entry.js` imports `worker.js` and serves `public/index.html`, `icon.svg` and `manifest.json.txt` as bundled Text modules (Workers Assets uploads can't run behind the session's injected API credential).
 
 ### 4.1 Units
 
@@ -61,34 +65,36 @@ GM dashboard ──MED chip──▶ med.tuffcityrecords.com
 | Store | `src/store.js` | KV CRUD for records, files and audit log | KV interface |
 | Importer | `src/importer.js` | Maps the Gmail/Drive findings JSON to records, de-duplicates | yes |
 | Assistant | `src/assistant.js` | Builds the records context + system prompt; calls Claude | fetch |
-| HTTP | `worker.js` | Routing, headers, wiring | — |
-| UI | `public/index.html` | Tabs per area, list + form per section, uploads, import, emergency card, Ask panel | — |
+| HTTP | `worker.js` | Routing, headers, wiring (tested app) | — |
+| Entry | `src/entry.js` | Production entry: serves the bundled page, wraps `worker.js` | — |
+| UI | `public/index.html` | Phone-first single page — see §4.4 | — |
 
 ### 4.2 Sections (data model)
 
 Each record: `{ id, section, ...fields, reviewed, source, createdAt, createdBy, updatedAt, updatedBy }` stored at `rec:<section>:<id>` with list metadata.
 
-| Area tab | Section | Key fields |
-|---|---|---|
-| Medical / Dental (filtered by `kind`) | `providers` | name*, kind (medical/dental/vision/pharmacy/lab/hospital), specialty, phone, address, portal, lastSeen, notes |
-| Medical / Dental | `visits` | date*, kind, provider, reason, notes |
-| Medical / Dental | `procedures` | date, name*, kind, provider, notes |
-| Medical | `conditions` | name*, since, status (active/resolved), notes |
-| Medical | `medications` | name*, dose, prescriber, pharmacy, status (active/past), notes |
-| Medical | `allergies` | name*, reaction, severity |
-| Medical | `immunizations` | name*, date, notes |
-| Insurance | `insurance` | type* (medical/dental/vision/medicare/supplement/partD/other), carrier*, plan, memberId, groupNumber, phone, effective, renewal, premium, notes |
-| Insurance | `claims` | date, carrier, provider, amount, status, notes |
-| Emergency | `contacts` | name*, relation, phone, email |
-| Documents | `files` (metadata) | name, type, size, section/record link, uploadedBy |
+| Area tab | Section | Key fields | Sorted by |
+|---|---|---|---|
+| Medical / Dental (filtered by `kind`) | `providers` | name*, kind (medical/dental/vision/pharmacy/lab/hospital), specialty, phone, address, portal, lastSeen, notes | Last seen (ranges keep the **latest**) |
+| Medical / Dental | `visits` | date*, kind, provider, reason, notes | Date |
+| Medical / Dental | `procedures` | date, name*, kind, provider, notes | Date |
+| Medical | `conditions` | name*, since, status (active/resolved), notes | Since |
+| Medical | `medications` | name*, since (started / prescribed, added 2026-10-06), dose, prescriber, pharmacy, status (active/past), notes | Started / prescribed |
+| Medical | `allergies` | name*, reaction, severity | Name A–Z |
+| Medical | `immunizations` | name*, date, notes | Date |
+| Insurance | `insurance` | type* (medical/dental/vision/medicare/supplement/partD/other), carrier*, plan, memberId, groupNumber, phone, effective, renewal, premium, notes | Effective |
+| Insurance | `claims` | date, carrier, provider, amount, status, notes | Date |
+| Emergency | `contacts` | name*, relation, phone, email | Name A–Z |
+| Documents | `files` (metadata) | name, type, size, section/record link, uploadedBy | Newest upload |
 
-`*` = required. Dates are `YYYY-MM-DD` (partial `YYYY` / `YYYY-MM` allowed for history).
+`*` = required. Dates are `YYYY-MM-DD` (partial `YYYY` / `YYYY-MM` allowed for history). Date ranges keep the earliest date, except Last seen (latest) — see E9.
 
 ### 4.3 API
 
 | Method & path | Does |
 |---|---|
-| `GET /api/me` | `{ email, allowed, assistant }` |
+| `GET /api/me` | `{ email, assistant }` |
+| `GET /api/schema` | Sections and fields (the page builds its forms from this) |
 | `GET /api/records` | All records (all sections) |
 | `POST /api/records` | Create `{ section, ...fields }` |
 | `PUT /api/records/:section/:id` | Update fields (incl. `reviewed:true`) |
@@ -101,7 +107,19 @@ Each record: `{ id, section, ...fields, reviewed, source, createdAt, createdBy, 
 | `GET /api/export` | Full JSON backup (records + file list, no file bytes) |
 | `POST /api/ask` | `{ question, history[] }` → `{ answer }` |
 
-All non-allow-listed emails get `403` on every `/api/*` path; static assets are still Access-gated by Cloudflare.
+Non-allow-listed emails get `403` on every path, page included (the Worker runs first for all requests).
+
+### 4.4 UI (phone-first, 2026-10-07)
+
+| Area | Behaviour |
+|---|---|
+| Navigation | Bottom tab bar on phones (Home · Medical · Dental · Insurance · More); the same tabs sit in the top bar at ≥900 px |
+| Home | To-review card (count, progress bar, **Start review**), six tiles (allergies, current meds, conditions, insurance, doctors, contacts), collapsible **Emergency summary** (prints as one page), emergency contacts list |
+| Lists | Grouped by section; each row shows the stacked date, title, one detail line and an orange dot if unreviewed; 6 rows then **Show all**; search box + **All / To review** chips on every list |
+| Record sheet | Tap a row → sheet with all fields, attachments and source; **Confirm · Edit · Attach · Delete**; phone numbers are `tel:` links |
+| Review mode | One unreviewed record at a time, newest first, with progress: **Confirm · Edit · Skip · Delete** |
+| More | Ask MED, Documents (upload/file under a section), Activity (audit log), Print emergency card, Download backup, Import findings |
+| Feedback | Toasts for saves, confirms, uploads and errors |
 
 ## 5. Privacy & security
 
@@ -113,7 +131,7 @@ All non-allow-listed emails get `403` on every `/api/*` path; static assets are 
 
 ## 6. Testing
 
-`node --test` (no dependencies). Pure units are tested directly; `store.js` and `worker.js` are tested against an in-memory KV fake and a stubbed Claude `fetch`. Verification before completion: full test run + a local smoke test of the UI against the Worker logic.
+`node --test` (no dependencies; 39 tests as of 2026-10-07). Pure units are tested directly; `store.js` and `worker.js` are tested against an in-memory KV fake and a stubbed Claude `fetch`. Verification before completion: full test run + a Chromium smoke test (phone 390 px and desktop 1280 px) via `scripts/dev-server.mjs`: import → review mode → confirm → search → record sheet → edit → activity, no page errors, no horizontal scroll.
 
 ## 7. Out of scope (v1)
 

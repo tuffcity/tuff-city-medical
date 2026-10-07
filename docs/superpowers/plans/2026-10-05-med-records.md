@@ -35,3 +35,11 @@ Tabs: Summary · Medical · Dental · Insurance · Documents · Activity. Generi
 
 ## Task 11 — Verify & finish
 Full `npm test`; local smoke (Worker logic via node harness + static UI in Chromium); `docs/DEPLOY-STATE.md` with the exact wrangler + Access steps; push.
+
+## Post-launch changes (all shipped, test-first)
+- **2026-10-06 Deploy:** KV + Access app (created before deploy) + Worker; page bundled via `src/entry.js`.
+- **2026-10-06 Import:** 130 Gmail/Drive records written as Unreviewed.
+- **2026-10-06 Sorting:** every list newest first by the record's own date; date shown on each row.
+- **2026-10-06 Date rule:** `earliestDate()` — ranges keep the earliest; Last seen keeps the latest; `M/D/YYYY` converted. Tests in `test/schema.test.js`, `test/importer.test.js`.
+- **2026-10-06 Medications:** `since` (Started / prescribed) field, used for sorting.
+- **2026-10-07 Redesign:** phone-first UI (spec §4.4); Chromium smoke test phone + desktop.
