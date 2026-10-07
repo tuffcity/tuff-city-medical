@@ -33,6 +33,11 @@ A private records app for Aaron Fuchs. It holds his doctors and dentists, visits
 - **Gmail / Drive:** a one-time search on 2026-10-06 of Aaron's mailbox and his Drive "Medical" folder loaded **130 records** as **Unreviewed**. Each record names its source email or file. A future findings file can be added with More → **Import findings**.
 - **Privacy rules:** Social Security numbers and birth dates are refused on every save, import and question. Ask MED answers **only** from stored records, never searches the web and saves no conversations.
 
+## Costs
+- Every visit and procedure can hold what was **charged**, **plan allowed**, **insurance paid**, **Aaron paid** (and how), **balance**, billing status, CDT/CPT codes, teeth, claim # and an **itemised breakdown**.
+- **Dental** and **Medical** tabs open with a cost summary; tap a visit for its 💵 Costs panel. Quotes are listed under **Treatment plans & quotes** and are not counted as charges.
+- Filled 2026-10-07 from Gmail + Drive (receipts, bank alerts, statements, the one saved UHC EOB). Most UHC EOB emails carry no amounts, and quote/statement PDFs attached in Gmail could not be opened, so many visits still show no cost.
+
 ## Date rules
 - Every list is **newest first** by the record's own date; records with no date go last, A–Z.
 - Sort date by section: visits, procedures, immunizations and claims use their **date**; providers use **Last seen**; conditions use **Since**; medications use **Started / prescribed**; insurance uses **Effective**. Allergies and contacts sort A–Z.

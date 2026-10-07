@@ -40,3 +40,9 @@ Stage reached: 6 / 6 for data (live, gated, 130 records imported, MED chip live)
   prescribed date; 9 filled from the urology records. Nanci confirmed all dates.
 - 2026-10-07 — Redesign: phone-first UI (bottom tabs, record sheets, search + To review filter, review mode).
   Smoke-tested phone + desktop; deployed.
+- 2026-10-07 — Costs: visits/procedures got cost fields + itemised breakdown; new Treatment plans & quotes section;
+  Dental/Medical cost summaries. Gmail/Drive cost research merged: dental 24 visits (15 new, incl. 2016-2018 Fresh
+  Dental / Gary Ruth, 209 NYC Dental 2021) + 5 plans; medical 17 items (6 new). $622.50 Union Square dispute shown
+  settled (paid 2023-06-20). Hearing aids $3,500 kept as a quote, not a charge. Possible balances: $165.20 biopsy,
+  $120 echo, $5 Akhavan, $15.82 NYU (claims). A Drive file "NYU Medical Bill pmt - 2025-08-11" holds a MyChart
+  login in plain text — flagged to Nanci, not imported.

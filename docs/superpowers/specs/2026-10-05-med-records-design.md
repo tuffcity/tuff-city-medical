@@ -76,8 +76,9 @@ Each record: `{ id, section, ...fields, reviewed, source, createdAt, createdBy, 
 | Area tab | Section | Key fields | Sorted by |
 |---|---|---|---|
 | Medical / Dental (filtered by `kind`) | `providers` | name*, kind (medical/dental/vision/pharmacy/lab/hospital), specialty, phone, address, portal, lastSeen, notes | Last seen (ranges keep the **latest**) |
-| Medical / Dental | `visits` | date*, kind, provider, reason, notes | Date |
-| Medical / Dental | `procedures` | date, name*, kind, provider, notes | Date |
+| Medical / Dental | `visits` | date*, kind, provider, reason, what was done, **costs** (charged, plan allowed, insurance paid, Aaron paid, paid how, balance, billing status, CDT/CPT codes, teeth, claim #, itemised breakdown), notes | Date |
+| Medical / Dental | `procedures` | date, name*, kind, provider, **costs** (as visits), notes | Date |
+| Medical / Dental | `plans` (Treatment plans & quotes, added 2026-10-07) | date*, provider*, kind, proposed work & prices, total quoted, status (done/partly done/not done/unknown), notes | Date |
 | Medical | `conditions` | name*, since, status (active/resolved), notes | Since |
 | Medical | `medications` | name*, since (started / prescribed, added 2026-10-06), dose, prescriber, pharmacy, status (active/past), notes | Started / prescribed |
 | Medical | `allergies` | name*, reaction, severity | Name A–Z |
@@ -115,6 +116,7 @@ Non-allow-listed emails get `403` on every path, page included (the Worker runs 
 |---|---|
 | Navigation | Bottom tab bar on phones (Home · Medical · Dental · Insurance · More); the same tabs sit in the top bar at ≥900 px |
 | Home | To-review card (count, progress bar, **Start review**), six tiles (allergies, current meds, conditions, insurance, doctors, contacts), collapsible **Emergency summary** (prints as one page), emergency contacts list |
+| Costs | Dental and Medical tabs open with a cost summary (charged · insurance paid · Aaron paid · outstanding, quotes excluded; a procedure's costs count only when no visit that day has any). Record sheets show a 💵 Costs panel with the itemised breakdown |
 | Lists | Grouped by section; each row shows the stacked date, title, one detail line and an orange dot if unreviewed; 6 rows then **Show all**; search box + **All / To review** chips on every list |
 | Record sheet | Tap a row → sheet with all fields, attachments and source; **Confirm · Edit · Attach · Delete**; phone numbers are `tel:` links |
 | Review mode | One unreviewed record at a time, newest first, with progress: **Confirm · Edit · Skip · Delete** |
