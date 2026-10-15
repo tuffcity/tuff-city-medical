@@ -71,6 +71,7 @@ test("bad op skipped; other ops still apply", async () => {
 test("keep settles; settling is idempotent", async () => {
   const { kv, store, cond } = await setup();
   const r = await applyImport(store, kv, { title: "K", ops: baseOps(cond) }, BY);
+  await assert.rejects(() => settleItem(store, kv, r.id, 3, { action: "keep" }, BY), /Choose an option/);
   const k = await settleItem(store, kv, r.id, 1, { action: "keep" }, BY);
   assert.equal(k.items[0].decision, "kept");
   assert.equal((await getImport(kv, r.id)).items[0].decision, "kept");
@@ -127,4 +128,47 @@ test("report closes when all are settled; list sorts open first", async () => {
   assert.equal(list[0].id, r3.id);
   assert.equal(list.length, 3);
   assert.equal(list.find((x) => x.id === r.id).settled, 4);
+});
+
+test("a throwing op becomes skipped; the rest apply and the report is saved", async () => {
+  const { kv, store, cond } = await setup();
+  const real = store.createRecord.bind(store);
+  const flaky = Object.create(store);
+  flaky.createRecord = async (section, fields, by) => {
+    if (fields.reason === "boom") throw new Error("kv down");
+    return real(section, fields, by);
+  };
+  Object.defineProperty(flaky, "lastLogKey", { get: () => store.lastLogKey });
+  const r = await applyImport(flaky, kv, { title: "Flaky", ops: [
+    { op: "create", section: "visits", fields: { date: "2026-09-01", reason: "ok" }, group: "added", label: "A" },
+    { op: "create", section: "visits", fields: { date: "2026-09-02", reason: "boom" }, group: "added", label: "B" },
+    null,
+    { op: "conflict", label: "C", choices: [null, { id: "x", label: "X" }] },
+    { op: "update", section: "conditions", id: cond.id, label: "no fields" },
+  ] }, BY);
+  assert.deepEqual(r.items.map((i) => i.group), ["added", "skipped", "skipped", "conflict", "updated"]);
+  assert.match(r.items[1].reason, /Couldn't apply: kv down/);
+  assert.equal(r.items[3].choices.length, 1);
+  assert.deepEqual(await getImport(kv, r.id), r);
+});
+
+test("stale choose is refused and the item stays open", async () => {
+  const { kv, store, cond } = await setup();
+  const r = await applyImport(store, kv, { title: "S", ops: baseOps(cond) }, BY);
+  assert.ok(r.items[2].choices[0].patch.baseUpdatedAt);
+  await store.updateRecord("conditions", cond.id, { notes: "newer edit" }, BY);
+  await assert.rejects(() => settleItem(store, kv, r.id, 3, { action: "choose", choice: "pdf" }, BY), /changed since the import/);
+  assert.equal((await getImport(kv, r.id)).items[2].decision, null);
+  assert.equal((await store.listRecords()).find((x) => x.id === cond.id).notes, "newer edit");
+});
+
+test("sensitive text in report-level strings is replaced", async () => {
+  const { kv, store } = await setup();
+  const r = await applyImport(store, kv, { title: "DOB: born on 01/02/1950", source: { name: "a.pdf", note: "SSN 123-45-6789" }, ops: [
+    { op: "skip", label: "Patient born on 03/04/1960", reason: "dup" },
+    { op: "conflict", label: "ok", detail: "SSN 123-45-6789", choices: [{ id: "a", label: "date of birth 1/1/1950" }] },
+  ] }, BY);
+  const json = JSON.stringify(r);
+  assert.doesNotMatch(json, /123-45-6789|1950|1960/);
+  assert.match(r.items[0].label, /^\[removed: contains a birth date\]$/);
 });

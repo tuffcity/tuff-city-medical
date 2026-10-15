@@ -25,6 +25,13 @@ const save = async (kv, report) => {
   return report;
 };
 
+// Report text is stored and shown; never let a sensitive value ride along in it.
+const scrub = (v) => {
+  const text = String(v ?? "");
+  const hit = findSensitive(text);
+  return hit ? `[removed: contains ${hit}]` : text;
+};
+
 const sensitiveSkip = (reason) => `Contains ${reason}; not imported.`;
 
 // → { skip: reason } or { fields } for a patch / op fields (partial = update).
@@ -36,23 +43,23 @@ function vet(section, fields, partial) {
   return { fields: c.value };
 }
 
-async function applyOp(store, op, n, by) {
-  const label = String(op?.label ?? "");
+async function applyOp(store, kv, op, n, by) {
+  const label = scrub(op?.label);
   const item = { n, group: "skipped", label, section: op?.section ?? null, recordId: null, logKey: null, before: null, after: null, choices: null, decision: null };
-  const skip = (reason) => ({ ...item, group: "skipped", reason });
+  const skip = (reason) => ({ ...item, group: "skipped", reason: scrub(reason) });
 
   if (!op || typeof op !== "object") return skip("Unreadable item.");
-  if (op.op === "skip") return skip(String(op.reason ?? "Skipped."));
+  if (op.op === "skip") return skip(op.reason ?? "Skipped.");
 
   if (op.op === "create") {
-    const v = vet(op.section, op.fields, false);
+    const v = vet(op.section, op.fields ?? {}, false);
     if (v.skip) return skip(v.skip);
     const rec = await store.createRecord(op.section, { ...v.fields, reviewed: false }, by);
     return { ...item, group: op.group === "upcoming" ? "upcoming" : "added", recordId: rec.id, logKey: store.lastLogKey, after: rec };
   }
 
   if (op.op === "update") {
-    const v = vet(op.section, op.fields, true);
+    const v = vet(op.section, op.fields ?? {}, true);
     if (v.skip) return skip(v.skip);
     const entry0 = await store.updateRecord(op.section, op.id, v.fields, by);
     if (!entry0) return skip("That record no longer exists.");
@@ -64,15 +71,18 @@ async function applyOp(store, op, n, by) {
   if (op.op === "conflict") {
     const choices = [];
     for (const ch of Array.isArray(op.choices) ? op.choices : []) {
-      const out = { id: String(ch.id), label: String(ch.label ?? "") };
-      if (ch.patch) {
-        const v = vet(ch.patch.section, ch.patch.fields, true);
+      if (!ch || typeof ch !== "object") continue;
+      const out = { id: String(ch.id), label: scrub(ch.label) };
+      if (ch.patch && typeof ch.patch === "object") {
+        const v = vet(ch.patch.section, ch.patch.fields ?? {}, true);
         if (v.skip) return skip(v.skip);
-        out.patch = { section: ch.patch.section, id: ch.patch.id, fields: v.fields };
+        const cur = await kv.get(`rec:${ch.patch.section}:${ch.patch.id}`, "json");
+        if (!cur) return skip("That record no longer exists.");
+        out.patch = { section: ch.patch.section, id: ch.patch.id, fields: v.fields, baseUpdatedAt: cur.updatedAt };
       }
       choices.push(out);
     }
-    return { ...item, group: "conflict", detail: String(op.detail ?? ""), choices };
+    return { ...item, group: "conflict", detail: scrub(op.detail), choices };
   }
 
   return skip("Unknown item type.");
@@ -80,11 +90,21 @@ async function applyOp(store, op, n, by) {
 
 export async function applyImport(store, kv, { title, source, ops }, by) {
   const items = [];
-  for (const op of Array.isArray(ops) ? ops : []) items.push(await applyOp(store, op, items.length + 1, by));
-  for (const it of items) it.logId = it.logKey; // spec §3.3 name
+  for (const op of Array.isArray(ops) ? ops : []) {
+    const n = items.length + 1;
+    try {
+      items.push(await applyOp(store, kv, op, n, by));
+    } catch (err) {
+      items.push({ n, group: "skipped", label: scrub(op?.label), section: op?.section ?? null, recordId: null, logKey: null,
+        before: null, after: null, choices: null, decision: null, reason: scrub(`Couldn't apply: ${err?.message ?? err}`) });
+    }
+  }
+  const src = source && typeof source === "object"
+    ? Object.fromEntries(Object.entries(source).map(([k, v]) => [k, typeof v === "string" ? scrub(v) : v]))
+    : null;
   const report = {
-    id: crypto.randomUUID(), title: String(title ?? "Import").slice(0, 200), createdAt: Date.now(), createdBy: by,
-    source: source ?? null, items,
+    id: crypto.randomUUID(), title: scrub(title ?? "Import").slice(0, 200), createdAt: Date.now(), createdBy: by,
+    source: src, items,
   };
   return save(kv, report);
 }
@@ -111,6 +131,7 @@ export async function settleItem(store, kv, id, n, { action, choice } = {}, by) 
   if (item.group === "skipped" || item.decision !== null) return report;
 
   if (action === "keep") {
+    if (item.group === "conflict") throw new Error("Choose an option for this conflict.");
     item.decision = "kept";
   } else if (action === "undo") {
     if (!item.logKey) throw new Error("Nothing to undo.");
@@ -123,6 +144,9 @@ export async function settleItem(store, kv, id, n, { action, choice } = {}, by) 
     if (ch.patch) {
       const v = vet(ch.patch.section, ch.patch.fields, true);
       if (v.skip) throw new Error(v.skip);
+      const cur = await kv.get(`rec:${ch.patch.section}:${ch.patch.id}`, "json");
+      if (!cur) throw new Error("That record no longer exists.");
+      if (cur.updatedAt !== ch.patch.baseUpdatedAt) throw new Error("This record changed since the import; review it before choosing.");
       const rec = await store.updateRecord(ch.patch.section, ch.patch.id, v.fields, by);
       if (!rec) throw new Error("That record no longer exists.");
       item.patchLogKey = store.lastLogKey;
