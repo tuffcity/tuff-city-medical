@@ -13,7 +13,7 @@ Stage reached: 6 / 6 for data (live, gated, 130 records imported, MED chip live)
 ```
 
 ## Stages
-1. ✅ Code + tests (39 passing as of 2026-10-07), pushed to `main`.
+1. ✅ Code + tests (96 passing as of 2026-10-15; Coming up, import reports, undo and menu on branch `feat/coming-up-undo-menu`), pushed to `main`.
 2. ✅ Create KV: `npx wrangler kv namespace create RECORDS` → paste the printed `id` into `wrangler.toml`, commit.
 3. ✅ Deploy: `npx wrangler deploy` → attaches med.tuffcityrecords.com. (Domain answers **403** to everyone until Access adds the email header — the Worker allow-list fails closed.)
 4. ✅ Access: Zero Trust → Access → Applications → Add → Self-hosted → hostname `med.tuffcityrecords.com` → new policy **"MED — Nanci + Aaron"**: Include → Emails → `nanci@tuffcity.com`, `aaronf@tuffcity.com`. Login methods: One-time PIN + Google.
@@ -29,7 +29,8 @@ Stage reached: 6 / 6 for data (live, gated, 130 records imported, MED chip live)
   Workers Assets upload 401'd (its upload JWT gets replaced by the injected token), so the page is now bundled
   into the script via src/entry.js + Text rules — a deploy is one script upload. Verified by API: workers.dev
   off, custom domain bound, Access policy allow-only for nanci@/aaronf@.
-  Deploy command: CLOUDFLARE_API_TOKEN=injected-by-proxy CLOUDFLARE_ACCOUNT_ID=56306730a3a3aebf779a2525878c4e59 npx wrangler deploy
+  Deploy command (from 2026-10-15): CLOUDFLARE_API_TOKEN=injected-by-proxy CLOUDFLARE_ACCOUNT_ID=56306730a3a3aebf779a2525878c4e59 npx wrangler deploy --var MED_VERSION:<short sha>
+  (MED_VERSION is served at /api/version; menu Refresh reloads the page when it differs.)
   Keep public/manifest.json.txt in sync with public/manifest.json (bundled copy).
 - 2026-10-06 — Data: Gmail/Drive search (Aaron's mailbox + Drive "Medical" folder) → 130 records bulk-written to KV
   as Unreviewed with audit entries (1 duplicate plan dropped; nothing sensitive). MyChart password seen in a scanned
@@ -46,3 +47,10 @@ Stage reached: 6 / 6 for data (live, gated, 130 records imported, MED chip live)
   settled (paid 2023-06-20). Hearing aids $3,500 kept as a quote, not a charge. Possible balances: $165.20 biopsy,
   $120 echo, $5 Akhavan, $15.82 NYU (claims). A Drive file "NYU Medical Bill pmt - 2025-08-11" holds a MyChart
   login in plain text — flagged to Nanci, not imported.
+- 2026-10-15 — Coming up, visit cards, import reports, undo, menu (Refresh / Log out) built on feat/coming-up-undo-menu.
+  Imports: `node scripts/apply-import.mjs <payload.json> [--apply]` runs a payload ({title, source, attach?, ops}) through
+  src/store.js + src/imports.js so a report is created exactly as in the app. Default is a DRY RUN (real records are read
+  from KV into memory; nothing written). --apply writes to the real KV via the REST adapter scripts/lib/kv-rest.mjs
+  (CLOUDFLARE_API_TOKEN; CF_ACCOUNT_ID / CF_KV_NAMESPACE override the defaults). In a cloud session also set
+  NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt so Node's fetch uses the proxy. Payloads hold medical
+  data: keep them outside the repo. Planned first imports: the 2026-08-20 NYU AVS and the aaronf@ scan of 2026-10-15.
