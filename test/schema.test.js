@@ -98,8 +98,21 @@ test("upcoming section", () => {
   assert.equal(SECTIONS.upcoming.date, "date");
 });
 
+test("upcoming type is required", () => {
+  assert.match(cleanRecord("upcoming", { title: "x" }).error, /Type is required/);
+});
+
+test("upcoming date is required for appointments and deadlines only", () => {
+  assert.equal(cleanRecord("upcoming", { type: "deadline", title: "x" }).error, "Date is required for appointments and deadlines.");
+  assert.equal(cleanRecord("upcoming", { type: "appointment", title: "x" }).error, "Date is required for appointments and deadlines.");
+  assert.equal(cleanRecord("upcoming", { type: "to-do", title: "x" }).error, undefined);
+  assert.equal(cleanRecord("upcoming", { type: "appointment", title: "x", date: "2026-10-15" }).error, undefined);
+  assert.equal(cleanRecord("upcoming", { type: "deadline", title: "x" }, { partial: true }).error, undefined);
+});
+
 test("visit vitals and clinical fields", () => {
-  const input = { date: "2026-02-20", bp: "152/72", bmi: "30.35", issues: "Prostate cancer\nElevated blood sugar", followUp: "2027-02-20" };
+  const input = { date: "2026-02-20", bp: "152/72", weight: "210", height: "5'10\"", bmi: "30.35", pulse: "72", temp: "98.6", spo2: "98%",
+    procedures: "Labs", reason: "Checkup", issues: "Prostate cancer\nElevated blood sugar", tests: "PSA, A1c", instructions: "Fast before draw", followUp: "2027-02-20" };
   const r = cleanRecord("visits", input);
   assert.equal(r.error, undefined);
   for (const k of Object.keys(input)) assert.equal(r.value[k], input[k], k);

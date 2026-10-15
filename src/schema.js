@@ -58,7 +58,7 @@ export const SECTIONS = {
   contacts: { label: "Emergency contacts", title: "name", fields: [
     f("name", "Name", { required: true }), f("relation", "Relation"), f("phone", "Phone"), f("email", "Email") ] },
   upcoming: { label: "Coming up", title: "title", date: "date", fields: [
-    f("type", "Type", { type: "enum", options: ["appointment", "deadline", "to-do"] }), f("title", "Title", { required: true }),
+    f("type", "Type", { type: "enum", required: true, options: ["appointment", "deadline", "to-do"] }), f("title", "Title", { required: true }),
     f("date", "Date", { type: "date" }), f("time", "Time"), f("provider", "Provider"), f("location", "Location"),
     f("phone", "Phone"), f("kind", "Kind", { type: "enum", options: ["medical", "dental", "vision", "hearing", "insurance", "pharmacy"] }),
     f("details", "Details", { type: "long" }), f("actionNeeded", "Action needed", { type: "long" }),
@@ -105,6 +105,9 @@ export function cleanRecord(section, input, { partial = false } = {}) {
     if (v && fd.type === "enum" && !fd.options.includes(v)) return { error: `${fd.label} must be one of: ${fd.options.join(", ")}.` };
     value[fd.key] = v;
   }
+  // Spec §3.1: an appointment or deadline needs a date; a to-do may omit it. Full records only.
+  if (section === "upcoming" && !partial && (value.type === "appointment" || value.type === "deadline") && !value.date)
+    return { error: "Date is required for appointments and deadlines." };
   if (typeof src.reviewed === "boolean") value.reviewed = src.reviewed;
   if (typeof src.source === "string") value.source = src.source.trim().slice(0, 500);
   return { value };
