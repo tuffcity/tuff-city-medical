@@ -50,3 +50,136 @@ test("files put/get/delete with size cap", async () => {
   assert.equal(await s.deleteFile(f.id, "n"), true);
   assert.equal(await s.getFile(f.id), null);
 });
+
+const U = "nanci@tuffcity.com";
+const lastKey = async (s) => (await s.listAudit(1))[0].key;
+
+test("listAudit entries carry key, before and after", async () => {
+  const s = createStore(kvFake());
+  const r = await s.createRecord("allergies", { name: "Latex" }, U);
+  const [e] = await s.listAudit();
+  assert.match(e.key, /^log:\d{13}:/);
+  assert.equal(e.before, null);
+  assert.equal(e.after.id, r.id);
+  assert.equal(s.lastLogKey, e.key);
+  assert.deepEqual(await s.getAudit(e.key), e);
+  assert.equal(await s.getAudit("log:nope"), null);
+});
+
+test("undo create removes the record", async () => {
+  const s = createStore(kvFake());
+  const r = await s.createRecord("allergies", { name: "Latex" }, U);
+  const res = await s.undo(await lastKey(s), U);
+  assert.equal(res.ok, true);
+  assert.equal((await s.listRecords()).length, 0);
+  const [e] = await s.listAudit();
+  assert.equal(e.action, "undo");
+  assert.equal(e.undoes.startsWith("log:"), true);
+  assert.equal(s.lastLogKey, e.key);
+  assert.equal(r.id, e.id);
+});
+
+test("undo update restores fields", async () => {
+  const s = createStore(kvFake());
+  const r = await s.createRecord("contacts", { name: "Nanci", phone: "1" }, U);
+  await s.updateRecord("contacts", r.id, { phone: "2" }, U);
+  const res = await s.undo(await lastKey(s), U);
+  assert.equal(res.ok, true);
+  const [cur] = await s.listRecords();
+  assert.equal(cur.phone, "1");
+});
+
+test("undo confirm makes reviewed false again", async () => {
+  const s = createStore(kvFake());
+  const r = await s.createRecord("allergies", { name: "Latex", reviewed: false }, U, "import");
+  await s.updateRecord("allergies", r.id, { reviewed: true }, U);
+  assert.equal((await s.listAudit())[0].action, "confirm");
+  await s.undo(await lastKey(s), U);
+  assert.equal((await s.listRecords())[0].reviewed, false);
+});
+
+test("undo delete restores same id and createdAt", async () => {
+  const s = createStore(kvFake());
+  const r = await s.createRecord("contacts", { name: "Nanci" }, U);
+  await s.deleteRecord("contacts", r.id, U);
+  const res = await s.undo(await lastKey(s), U);
+  assert.equal(res.ok, true);
+  const [cur] = await s.listRecords();
+  assert.equal(cur.id, r.id);
+  assert.equal(cur.createdAt, r.createdAt);
+  assert.deepEqual(cur, r);
+});
+
+test("redo: undoing the undo entry reapplies the change", async () => {
+  const s = createStore(kvFake());
+  const r = await s.createRecord("contacts", { name: "Nanci", phone: "1" }, U);
+  await s.updateRecord("contacts", r.id, { phone: "2" }, U);
+  await s.undo(await lastKey(s), U);
+  assert.equal((await s.listRecords())[0].phone, "1");
+  const redo = await s.undo(await lastKey(s), U);
+  assert.equal(redo.ok, true);
+  assert.equal((await s.listRecords())[0].phone, "2");
+  // redo of a delete-undo and of a create-undo
+  await s.deleteRecord("contacts", r.id, U);
+  await s.undo(await lastKey(s), U);
+  assert.equal((await s.listRecords()).length, 1);
+  await s.undo(await lastKey(s), U);
+  assert.equal((await s.listRecords()).length, 0);
+});
+
+test("undo refuses when changed again since", async () => {
+  const s = createStore(kvFake());
+  const r = await s.createRecord("contacts", { name: "Nanci", phone: "1" }, U);
+  await s.updateRecord("contacts", r.id, { phone: "A" }, U);
+  const keyA = await lastKey(s);
+  await new Promise((ok) => setTimeout(ok, 3));
+  await s.updateRecord("contacts", r.id, { phone: "B" }, U);
+  const res = await s.undo(keyA, U);
+  assert.deepEqual(res, { ok: false, error: "This was changed again since; undo the newer change first." });
+  assert.equal((await s.listRecords())[0].phone, "B");
+  assert.equal((await s.listAudit())[0].action, "update", "no undo entry written");
+  // undo of a create whose record was deleted since is also stale
+  const c = await s.createRecord("contacts", { name: "X" }, U);
+  const keyC = await lastKey(s);
+  await s.deleteRecord("contacts", c.id, U);
+  assert.equal((await s.undo(keyC, U)).ok, false);
+});
+
+test("undo unknown key", async () => {
+  const s = createStore(kvFake());
+  assert.deepEqual(await s.undo("log:missing", U), { ok: false, error: "Nothing to undo." });
+});
+
+test("undo file delete restores bytes from trash; undo upload trashes", async () => {
+  const kv = kvFake();
+  const s = createStore(kv);
+  const bytes = new TextEncoder().encode("card").buffer;
+  const f = await s.putFile({ name: "card.png", type: "image/png", bytes }, U);
+  const upKey = await lastKey(s);
+  assert.equal((await s.listAudit())[0].kind, "file");
+  await s.deleteFile(f.id, U);
+  assert.equal(s.lastLogKey, await lastKey(s));
+  assert.equal(await s.getFile(f.id), null);
+  assert.ok(kv.data.has(`trash:file:${f.id}`));
+  const res = await s.undo(await lastKey(s), U);
+  assert.equal(res.ok, true);
+  const got = await s.getFile(f.id);
+  assert.equal(new TextDecoder().decode(got.bytes), "card");
+  assert.equal(got.meta.name, "card.png");
+  // upload entry is now stale (file exists, but... after=meta, exists) so undo upload works
+  const res2 = await s.undo(upKey, U);
+  assert.equal(res2.ok, true);
+  assert.equal(await s.getFile(f.id), null);
+  // redo restores again
+  assert.equal((await s.undo(await lastKey(s), U)).ok, true);
+  assert.ok(await s.getFile(f.id));
+});
+
+test("undo file delete reports unrecoverable when trash is gone", async () => {
+  const kv = kvFake();
+  const s = createStore(kv);
+  const f = await s.putFile({ name: "a", type: "x", bytes: new ArrayBuffer(1) }, U);
+  await s.deleteFile(f.id, U);
+  kv.data.delete(`trash:file:${f.id}`);
+  assert.deepEqual(await s.undo(await lastKey(s), U), { ok: false, error: "That file is no longer recoverable." });
+});

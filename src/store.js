@@ -7,6 +7,8 @@ import { recordLabel } from "./schema.js";
 
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_TS = 9_999_999_999_999;
+export const TRASH_TTL_SECONDS = 30 * 24 * 60 * 60; // deleted files stay recoverable for 30 days
+const STALE_ERROR = "This was changed again since; undo the newer change first.";
 
 async function listAll(kv, prefix) {
   const keys = [];
@@ -23,13 +25,63 @@ export function createStore(kv) {
   let lastTs = 0;
   const tick = () => (lastTs = Math.max(Date.now(), lastTs + 1));
 
-  async function audit(action, by, section, id, label) {
+  let lastLogKey = null;
+
+  async function audit(action, by, section, id, label, before = null, after = null, extra = {}) {
     const at = tick();
     const key = `log:${String(MAX_TS - at).padStart(13, "0")}:${id}`;
-    await kv.put(key, JSON.stringify({ at, by, action, section, id, label }));
+    await kv.put(key, JSON.stringify({ at, by, action, section, id, label, key, before, after, ...extra }));
+    lastLogKey = key;
+    return key;
+  }
+
+  // Move a file's bytes to trash, then remove the live copy.
+  async function trashFile(id, meta) {
+    const { value } = await kv.getWithMetadata(`file:${id}`, "arrayBuffer");
+    await kv.put(`trash:file:${id}`, value, { expirationTtl: TRASH_TTL_SECONDS, metadata: meta });
+    await kv.delete(`file:${id}`);
+  }
+
+  async function undoFile(entry) {
+    const exists = !!(await kv.getWithMetadata(`file:${entry.id}`)).metadata;
+    if (entry.after === null ? exists : !exists) return { ok: false, error: STALE_ERROR };
+    if (entry.before === null) {
+      await trashFile(entry.id, entry.after);
+    } else {
+      const { value, metadata } = await kv.getWithMetadata(`trash:file:${entry.id}`, "arrayBuffer");
+      if (!value) return { ok: false, error: "That file is no longer recoverable." };
+      await kv.put(`file:${entry.id}`, value, { metadata: metadata || entry.before });
+    }
+    return { ok: true };
+  }
+
+  async function undoRecord(entry) {
+    const key = `rec:${entry.section}:${entry.id}`;
+    const cur = await kv.get(key, "json");
+    const fresh = entry.after === null ? cur === null : cur !== null && cur.updatedAt === entry.after.updatedAt;
+    if (!fresh) return { ok: false, error: STALE_ERROR };
+    if (entry.before === null) await kv.delete(key);
+    else await kv.put(key, JSON.stringify(entry.before));
+    return { ok: true };
   }
 
   return {
+    get lastLogKey() { return lastLogKey; },
+
+    async getAudit(logKey) {
+      return kv.get(logKey, "json");
+    },
+
+    async undo(logKey, by) {
+      const entry = String(logKey).startsWith("log:") ? await kv.get(logKey, "json") : null;
+      if (!entry) return { ok: false, error: "Nothing to undo." };
+      const res = entry.kind === "file" ? await undoFile(entry) : await undoRecord(entry);
+      if (!res.ok) return res;
+      await audit("undo", by, entry.section, entry.id, entry.label, entry.after, entry.before,
+        { undoes: entry.key, ...(entry.kind === "file" ? { kind: "file" } : {}) });
+      return { ok: true, entry };
+    },
+
     async listRecords() {
       const keys = await listAll(kv, "rec:");
       return Promise.all(keys.map((k) => kv.get(k.name, "json"))).then((r) => r.filter(Boolean));
@@ -43,7 +95,7 @@ export function createStore(kv) {
         createdAt: now, createdBy: by, updatedAt: now, updatedBy: by,
       };
       await kv.put(`rec:${section}:${rec.id}`, JSON.stringify(rec));
-      await audit(action, by, section, rec.id, recordLabel(section, rec));
+      await audit(action, by, section, rec.id, recordLabel(section, rec), null, rec);
       return rec;
     },
 
@@ -53,7 +105,7 @@ export function createStore(kv) {
       if (!cur) return null;
       const rec = { ...cur, ...fields, id, section, updatedAt: Date.now(), updatedBy: by };
       await kv.put(key, JSON.stringify(rec));
-      await audit(fields.reviewed === true && !cur.reviewed ? "confirm" : "update", by, section, id, recordLabel(section, rec));
+      await audit(fields.reviewed === true && !cur.reviewed ? "confirm" : "update", by, section, id, recordLabel(section, rec), cur, rec);
       return rec;
     },
 
@@ -62,7 +114,7 @@ export function createStore(kv) {
       const cur = await kv.get(key, "json");
       if (!cur) return false;
       await kv.delete(key);
-      await audit("delete", by, section, id, recordLabel(section, cur));
+      await audit("delete", by, section, id, recordLabel(section, cur), cur, null);
       return true;
     },
 
@@ -86,7 +138,7 @@ export function createStore(kv) {
         uploadedBy: by, uploadedAt: Date.now(),
       };
       await kv.put(`file:${meta.id}`, bytes, { metadata: meta });
-      await audit("upload", by, meta.section || "files", meta.id, meta.name);
+      await audit("upload", by, meta.section || "files", meta.id, meta.name, null, meta, { kind: "file" });
       return meta;
     },
 
@@ -103,8 +155,8 @@ export function createStore(kv) {
     async deleteFile(id, by) {
       const { metadata } = await kv.getWithMetadata(`file:${id}`);
       if (!metadata) return false;
-      await kv.delete(`file:${id}`);
-      await audit("delete", by, metadata.section || "files", id, metadata.name);
+      await trashFile(id, metadata);
+      await audit("delete", by, metadata.section || "files", id, metadata.name, metadata, null, { kind: "file" });
       return true;
     },
   };
