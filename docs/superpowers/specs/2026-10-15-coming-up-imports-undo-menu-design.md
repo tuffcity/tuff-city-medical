@@ -4,7 +4,7 @@
 
 ## 1. Goal
 
-When MED opens, Aaron and Nanci see what's coming up for Aaron's health, each item counting down. Imported documents (starting with the 2026-08-20 NYU After Visit Summary) appear as clear visit cards, and every import produces a report that can be reviewed item by item. Every edit can be undone. A thought-out menu gives Refresh and Log out.
+When MED opens, Aaron and Nanci see what's coming up for Aaron's health, each item counting down. Imported documents (starting with an after-visit summary) appear as clear visit cards, and every import produces a report that can be reviewed item by item. Every edit can be undone. A thought-out menu gives Refresh and Log out.
 
 **Success looks like:**
 - Opening MED shows the next appointment or deadline first, with a live countdown and the right glow.
@@ -63,10 +63,7 @@ Items with status done or cancelled leave the Home strip immediately.
 **Tap an item** to see details plus **Mark done · Edit · Call**. Mark done and edits are undoable.
 
 **Seeded on build** (from the 2026-10-15 aaronf@ scan and the Aug 20 AVS), all Unreviewed:
-- Hearing-aid visit, Audio Help, 2026-10-15 3:15 PM (unconfirmed)
-- Medicare plan-change deadline, 2026-12-07
-- Annual follow-up with Dr. Scheiner, around 2027-02-20
-- To-dos: rebook Union Square Dental cleaning; NYU bill $15.82; review UHC 2027 Annual Notice of Change
+- A few upcoming appointments, a plan-change deadline, a follow-up, and some to-dos (specific items, providers and amounts are not recorded in this repo).
 
 ### 3.2 Visit summaries (visit card)
 
@@ -74,7 +71,7 @@ Items with status done or cancelled leave the Home strip immediately.
 
 | Group | Fields |
 |---|---|
-| Vitals | bp, weight, height, bmi, pulse, temp, spo2 (text, e.g. "152/72", "218 lb") |
+| Vitals | bp, weight, height, bmi, pulse, temp, spo2 (text, e.g. "150/70", "200 lb") |
 | Clinical | issues (one per line), tests (one per line), instructions (long text), followUp (date) |
 
 **Card layout** (replaces the plain field list when a visit has any vitals or clinical field):
@@ -187,15 +184,17 @@ A **☰ button** sits in the top bar on every screen. It is a side drawer on pho
   - menu Refresh and Log out targets
   - no page errors and no horizontal scroll
 
-## 7. Applying the Aug 20 AVS (first import, after build)
+## 7. Applying the AVS (first import, after build)
 
 | Group | Items |
 |---|---|
-| **Updated** | Visit 2026-08-19 "Visit; labs" → date **2026-08-20** (AVS is authoritative), reason "Annual exam", vitals, 7 issues, 10 tests, instructions "Return in about 6 months (around 2027-02-20)", PDF attached. Condition "BMI above normal" → note BMI 30.35 on 2026-08-20 (class 1 obesity per AVS) |
-| **Added** | Condition "Unequal leg length" (since 2026-08-20) |
-| **Conflict** | AVS medication list: "You have not been prescribed any medications" vs Trazodone listed as current → choices: *Mark trazodone past* · *Keep as current* |
-| **Upcoming** | Annual follow-up ~2027-02-20 |
-| **Skipped** | Birth date and MRN (privacy rule) · pages 2 and 4 not in the scan |
+| **Updated** | The visit (date corrected to the AVS date, vitals, issues, tests, instructions) |
+| **Added** | One new condition |
+| **Conflict** | AVS medication list vs a medication listed as current → choices: *Mark it past* · *Keep as current* |
+| **Upcoming** | The follow-up |
+| **Skipped** | Birth date/MRN (privacy rule), missing pages |
+
+Exact values live in the import payloads in the session scratchpad and are never committed.
 
 ## 8. Out of scope
 

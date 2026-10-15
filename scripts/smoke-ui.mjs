@@ -34,18 +34,18 @@ const call = async (method, path, body) => {
 const add = (section, fields) => call("POST", "/api/records", { section, ...fields });
 
 // ── Seed ──
-await add("conditions", { name: "Prostate cancer", status: "active" });
-const traz = await add("medications", { name: "Trazodone", status: "active", reviewed: false });
-const feb = await add("visits", { date: "2026-02-10", kind: "medical", provider: "Dr. Scheiner", reason: "Visit; labs", bp: "128/80", weight: "212 lb", bmi: "29.7" });
+await add("conditions", { name: "Example condition A", status: "active" });
+const traz = await add("medications", { name: "Examplazole", status: "active", reviewed: false });
+const feb = await add("visits", { date: "2026-02-10", kind: "medical", provider: "Dr. Example", reason: "Visit; labs", bp: "128/80", weight: "194 lb", bmi: "30.55" });
 const aug = await add("visits", {
-  date: "2026-08-20", kind: "medical", provider: "Dr. Scheiner", reason: "Annual exam", bp: "152/72", weight: "218 lb", bmi: "30.35",
-  pulse: "72", spo2: "97%", issues: "Prostate cancer\nUnequal leg length\nBMI above normal", tests: "PSA\nLipid panel\nCBC",
+  date: "2026-08-20", kind: "medical", provider: "Dr. Example", reason: "Annual exam", bp: "150/70", weight: "200 lb", bmi: "31.20",
+  pulse: "72", spo2: "97%", issues: "Example condition A\nSample finding B\nSample finding C", tests: "Test one\nTest two\nTest three",
   instructions: "Return in about 6 months (around 2027-02-20)", followUp: "2027-02-20", charged: "$250.00",
 });
 // NY times. T1 = Oct 15 12:00, T2 = Oct 19 12:00, T3 = Dec 1 12:00 (all America/New_York).
 const T1 = new Date("2026-10-15T16:00:00Z"), T2 = new Date("2026-10-19T16:00:00Z"), T3 = new Date("2026-12-01T17:00:00Z");
-await add("upcoming", { type: "appointment", title: "Hearing-aid visit", date: "2026-10-15", time: "8:00 PM", provider: "Audio Help", location: "Union Sq", phone: "212-555-0100", status: "unconfirmed", actionNeeded: "Bring old aids" });
-await add("upcoming", { type: "appointment", title: "Dentist check", date: "2026-10-20", time: "10:00 AM", provider: "Union Square Dental", status: "confirmed" });
+await add("upcoming", { type: "appointment", title: "Hearing-aid visit", date: "2026-10-15", time: "8:00 PM", provider: "Example Hearing Center", location: "Example Plaza", phone: "212-555-0100", status: "unconfirmed", actionNeeded: "Bring old aids" });
+await add("upcoming", { type: "appointment", title: "Dentist check", date: "2026-10-20", time: "10:00 AM", provider: "Example Dental", status: "confirmed" });
 await add("upcoming", { type: "deadline", title: "Medicare plan-change deadline", date: "2026-12-07", status: "needs action" });
 await add("upcoming", { type: "appointment", title: "Finished cleaning", date: "2026-10-25", time: "9:00 AM", status: "done" });
 await add("upcoming", { type: "appointment", title: "Cancelled eye exam", date: "2026-10-22", time: "9:00 AM", status: "cancelled" });
@@ -133,9 +133,9 @@ try {
   let ex = await expanded();
   check("Medical groups start collapsed", ex.length >= 6 && ex.every((v) => v === "false"), JSON.stringify(ex));
   check("Medical has .vitals-trend with 2 rows", (await page.locator(".vitals-trend tbody tr").count()) === 2);
-  check("vitals trend flags 152/72", (await page.locator(".vitals-trend .flag", { hasText: "152/72" }).count()) === 1);
+  check("vitals trend flags 150/70", (await page.locator(".vitals-trend .flag", { hasText: "150/70" }).count()) === 1);
   await page.locator('.group[data-g="medical:conditions"] .gtoggle').click().catch(() => {});
-  check("tapping Conditions opens it and shows rows", await page.locator('.group[data-g="medical:conditions"] .item', { hasText: "Prostate cancer" }).waitFor({ state: "visible", timeout: 1500 }).then(() => true, () => false));
+  check("tapping Conditions opens it and shows rows", await page.locator('.group[data-g="medical:conditions"] .item', { hasText: "Example condition A" }).waitFor({ state: "visible", timeout: 1500 }).then(() => true, () => false));
   check("+ Add does not toggle", await (async () => {
     await page.locator('.group[data-g="medical:conditions"] [data-act="add"]').click().catch(() => {});
     await page.keyboard.press("Escape");
@@ -147,7 +147,7 @@ try {
   ex = await expanded();
   check("Expand all opens every group", ex.length >= 6 && ex.every((v) => v === "true"), JSON.stringify(ex));
   await page.locator('[data-act="gall"][data-v="0"]').click().catch(() => {});
-  await page.fill("#q", "Prostate").catch(() => {});
+  await page.fill("#q", "condition A").catch(() => {});
   await page.waitForTimeout(450);
   check("search auto-opens the matching group", (await page.locator('.group[data-g="medical:conditions"] .gtoggle').getAttribute("aria-expanded").catch(() => "")) === "true");
   check("search hides groups with no matches", (await page.locator('.group[data-g="medical:allergies"]').count()) === 0);
@@ -160,12 +160,12 @@ try {
   await page.locator(".item", { hasText: "Annual exam" }).click().catch(() => {});
   await page.waitForSelector("#sheet[open]", { timeout: 3000 }).catch(() => {});
   check("visit card shows vitals tiles", (await page.locator("#sheet .vital").count()) >= 4);
-  check("152/72 is flagged", (await page.locator("#sheet .vital.flag", { hasText: "152/72" }).count()) === 1);
+  check("150/70 is flagged", (await page.locator("#sheet .vital.flag", { hasText: "150/70" }).count()) === 1);
   check("weight tile shows ↑6", ((await page.locator('#sheet .vital[data-k="weight"] .delta').textContent().catch(() => "")) || "").trim() === "↑6");
   check("issue chips render", (await page.locator("#sheet .ichip").count()) === 3);
-  check("'Unequal leg length' chip marked New", ((await page.locator("#sheet .ichip", { hasText: "Unequal leg length" }).textContent().catch(() => "")) || "").includes("New"));
-  check("'Prostate cancer' chip links to the condition", !(((await page.locator("#sheet .ichip", { hasText: "Prostate cancer" }).textContent().catch(() => "")) || "New").includes("New"))
-    && (await page.locator('#sheet button.ichip[data-act="open"]', { hasText: "Prostate cancer" }).count()) === 1);
+  check("'Sample finding B' chip marked New", ((await page.locator("#sheet .ichip", { hasText: "Sample finding B" }).textContent().catch(() => "")) || "").includes("New"));
+  check("'Example condition A' chip links to the condition", !(((await page.locator("#sheet .ichip", { hasText: "Example condition A" }).textContent().catch(() => "")) || "New").includes("New"))
+    && (await page.locator('#sheet button.ichip[data-act="open"]', { hasText: "Example condition A" }).count()) === 1);
   check("tests as checklist", (await page.locator("#sheet .checklist li").count()) === 3);
   check("follow-up date links to its Coming up item", await (async () => {
     const b = page.locator("#sheet .fu-link");
@@ -180,13 +180,13 @@ try {
   check("instructions link to Coming up item", (await page.locator("#sheet [data-act=open]", { hasText: "Schedule 6-month follow-up" }).count()) === 1);
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/ui-visit.png` });
   await page.locator('#sheet button.ichip[data-act="open"]').click().catch(() => {});
-  check("tapping a matched chip opens the condition", ((await page.locator("#sheet h3").textContent().catch(() => "")) || "").includes("Prostate cancer"));
+  check("tapping a matched chip opens the condition", ((await page.locator("#sheet h3").textContent().catch(() => "")) || "").includes("Example condition A"));
   await page.keyboard.press("Escape");
   check("phone Medical: no horizontal scroll", await noHScroll(page));
 
   // Undo after confirm.
-  await page.fill("#q", "Trazodone"); await page.waitForTimeout(450);
-  await page.locator(".item", { hasText: "Trazodone" }).click();
+  await page.fill("#q", "Examplazole"); await page.waitForTimeout(450);
+  await page.locator(".item", { hasText: "Examplazole" }).click();
   await page.locator('#sheet [data-act="confirm"]').click();
   const undoBtn = page.locator('.toast [data-act="undo"]');
   check("confirm shows a toast with Undo", await undoBtn.waitFor({ state: "visible", timeout: 3000 }).then(() => true, () => false));
@@ -231,7 +231,7 @@ try {
   await page.locator(".burger").click();
   await page.locator('#menu [data-act="undolast"]').click().catch(() => {});
   await page.waitForTimeout(500);
-  check("Undo last change of an undo offers Redo with the original verb", dialogs[0] === 'Redo: confirmed "Trazodone"?', dialogs[0]);
+  check("Undo last change of an undo offers Redo with the original verb", dialogs[0] === 'Redo: confirmed "Examplazole"?', dialogs[0]);
   check("never shows 'the undo of'", !dialogs.some((m) => m.includes("the undo of")));
   await page.locator(".burger").click();
   await page.locator('#menu [data-act="refresh"]').click().catch(() => {});
@@ -241,12 +241,12 @@ try {
   // Import report.
   const trazNow = (await call("GET", "/api/records")).records.find((r) => r.id === traz.id);
   await call("POST", "/api/imports", {
-    title: "NYU After Visit Summary 2026-08-20", source: { name: "avs.pdf", note: "Pages 1 and 3" },
+    title: "Example After Visit Summary 2026-08-20", source: { name: "avs.pdf", note: "Pages 1 and 3" },
     ops: [
       { op: "create", section: "medications", label: "Vitamin D", fields: { name: "Vitamin D", status: "active" } },
       { op: "update", section: "visits", id: feb.id, label: "Feb visit notes", fields: { notes: "Labs reviewed" } },
-      { op: "conflict", label: "Trazodone", detail: "AVS lists no medications", choices: [
-        { id: "past", label: "Mark trazodone past", patch: { section: "medications", id: trazNow.id, fields: { status: "past" } } },
+      { op: "conflict", label: "Examplazole", detail: "AVS lists no medications", choices: [
+        { id: "past", label: "Mark examplazole past", patch: { section: "medications", id: trazNow.id, fields: { status: "past" } } },
         { id: "keep", label: "Keep as current" }] },
       { op: "skip", label: "Birth date and MRN", reason: "Privacy rule" },
       { op: "create", group: "upcoming", section: "upcoming", label: "Annual follow-up", fields: { type: "appointment", title: "Annual follow-up", date: "2027-02-20", visitId: aug.id } },

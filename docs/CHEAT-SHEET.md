@@ -30,7 +30,7 @@ A private records app for Aaron Fuchs. It holds his doctors and dentists, visits
 - **The master:** Cloudflare KV namespace **RECORDS** (`ad60b36992244b3ca5371cc0650241da`). It holds every record (`rec:<section>:<id>`), uploaded files up to 10 MB (`file:<id>`) and the audit log (`log:…`).
 - **On device:** nothing. There is no offline cache, and every response is `no-store`, so medical data doesn't linger on a lost phone. Only the last-opened tab, which sections are open/closed and the light/dark choice are remembered.
 - **Backup:** menu → **Download backup** saves all records as JSON. File contents are not included; download those from Documents.
-- **Gmail / Drive:** a one-time search on 2026-10-06 of Aaron's mailbox and his Drive "Medical" folder loaded **130 records** as **Unreviewed**. Each record names its source email or file. Later documents (e.g. the 2026-08-20 NYU After Visit Summary) and the aaronf@ email scan of 2026-10-15 come in as **import reports** (see below).
+- **Gmail / Drive:** a one-time search on 2026-10-06 of Aaron's mailbox and his Drive "Medical" folder loaded **130 records** as **Unreviewed**. Each record names its source email or file. Later documents (e.g. an after-visit summary) and the aaronf@ email scan of 2026-10-15 come in as **import reports** (see below).
 - **Privacy rules:** Social Security numbers and birth dates are refused on every save, import and question. Ask MED answers **only** from stored records, never searches the web and saves no conversations.
 
 ## Coming up & countdown glow rules

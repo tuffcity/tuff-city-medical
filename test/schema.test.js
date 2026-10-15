@@ -71,22 +71,22 @@ test("last seen keeps the LATEST date of a range (exception to earliest rule)", 
 
 test("medications carry a Started / prescribed date used for sorting", () => {
   assert.equal(SECTIONS.medications.date, "since");
-  assert.equal(cleanRecord("medications", { name: "Trazodone", since: "2024-12" }).value.since, "2024-12");
+  assert.equal(cleanRecord("medications", { name: "Examplazole", since: "2024-12" }).value.since, "2024-12");
 });
 
 test("visits and procedures carry cost fields and an itemised breakdown", () => {
-  const v = cleanRecord("visits", { date: "2022-06-27", kind: "dental", charged: "$1,245.00", insurancePaid: "$0.00", aaronPaid: "$622.50",
-    balance: "$622.50", codes: "D2740, D2954", teeth: "#30", paymentMethod: "Visa", breakdown: "D2740 – crown – #30 – $1,050\nD2954 – post – #30 – $195", billingStatus: "disputed" });
+  const v = cleanRecord("visits", { date: "2022-06-27", kind: "dental", charged: "$1,200.00", insurancePaid: "$0.00", aaronPaid: "$600.00",
+    balance: "$600.00", codes: "D2740, D2954", teeth: "#30", paymentMethod: "Visa", breakdown: "D2740 – crown – #30 – $1,000\nD2954 – post – #30 – $200", billingStatus: "disputed" });
   assert.equal(v.error, undefined);
-  assert.equal(v.value.charged, "$1,245.00");
+  assert.equal(v.value.charged, "$1,200.00");
   assert.match(v.value.breakdown, /D2954/);
-  const p = cleanRecord("procedures", { name: "Rezum", charged: "$4,000", allowed: "$1,200", claimNumber: "12345" });
+  const p = cleanRecord("procedures", { name: "Example procedure", charged: "$4,000", allowed: "$1,200", claimNumber: "12345" });
   assert.equal(p.value.allowed, "$1,200");
 });
 
 test("treatment plans & quotes section", () => {
   assert.equal(SECTIONS.plans.date, "date");
-  const r = cleanRecord("plans", { date: "2022-02-04", provider: "Union Square Dental", kind: "dental", items: "Crown #30 – $1,500", total: "$1,500", status: "partly done" });
+  const r = cleanRecord("plans", { date: "2022-02-04", provider: "Example Dental", kind: "dental", items: "Crown #30 – $1,500", total: "$1,500", status: "partly done" });
   assert.equal(r.error, undefined);
   assert.match(cleanRecord("plans", { date: "2022", provider: "X", status: "maybe" }).error, /Status/);
 });
@@ -111,8 +111,8 @@ test("upcoming date is required for appointments and deadlines only", () => {
 });
 
 test("visit vitals and clinical fields", () => {
-  const input = { date: "2026-02-20", bp: "152/72", weight: "210", height: "5'10\"", bmi: "30.35", pulse: "72", temp: "98.6", spo2: "98%",
-    procedures: "Labs", reason: "Checkup", issues: "Prostate cancer\nElevated blood sugar", tests: "PSA, A1c", instructions: "Fast before draw", followUp: "2027-02-20" };
+  const input = { date: "2026-02-20", bp: "150/70", weight: "210", height: "5'10\"", bmi: "31.20", pulse: "72", temp: "98.6", spo2: "98%",
+    procedures: "Labs", reason: "Checkup", issues: "Example condition A\nExample condition B", tests: "Test one, Test two", instructions: "Fast before draw", followUp: "2027-02-20" };
   const r = cleanRecord("visits", input);
   assert.equal(r.error, undefined);
   for (const k of Object.keys(input)) assert.equal(r.value[k], input[k], k);
