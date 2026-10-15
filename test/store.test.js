@@ -132,7 +132,6 @@ test("undo refuses when changed again since", async () => {
   const r = await s.createRecord("contacts", { name: "Nanci", phone: "1" }, U);
   await s.updateRecord("contacts", r.id, { phone: "A" }, U);
   const keyA = await lastKey(s);
-  await new Promise((ok) => setTimeout(ok, 3));
   await s.updateRecord("contacts", r.id, { phone: "B" }, U);
   const res = await s.undo(keyA, U);
   assert.deepEqual(res, { ok: false, error: "This was changed again since; undo the newer change first." });
@@ -166,7 +165,7 @@ test("undo file delete restores bytes from trash; undo upload trashes", async ()
   const got = await s.getFile(f.id);
   assert.equal(new TextDecoder().decode(got.bytes), "card");
   assert.equal(got.meta.name, "card.png");
-  // upload entry is now stale (file exists, but... after=meta, exists) so undo upload works
+  // the file exists again, so the original upload entry (after = meta) is fresh and can be undone
   const res2 = await s.undo(upKey, U);
   assert.equal(res2.ok, true);
   assert.equal(await s.getFile(f.id), null);
@@ -182,4 +181,42 @@ test("undo file delete reports unrecoverable when trash is gone", async () => {
   await s.deleteFile(f.id, U);
   kv.data.delete(`trash:file:${f.id}`);
   assert.deepEqual(await s.undo(await lastKey(s), U), { ok: false, error: "That file is no longer recoverable." });
+});
+
+test("two updates in the same millisecond still make the older undo stale", async () => {
+  const s = createStore(kvFake());
+  const r = await s.createRecord("contacts", { name: "N", phone: "1" }, U);
+  await s.updateRecord("contacts", r.id, { phone: "A" }, U);
+  const keyA = await lastKey(s);
+  const b = await s.updateRecord("contacts", r.id, { phone: "B" }, U);
+  const a = (await s.getAudit(keyA)).after;
+  assert.ok(b.updatedAt > a.updatedAt);
+  const res = await s.undo(keyA, U);
+  assert.equal(res.ok, false);
+  assert.equal((await s.listRecords())[0].phone, "B");
+});
+
+test("undo of a legacy audit entry (no before/after) is Nothing to undo", async () => {
+  const kv = kvFake();
+  const s = createStore(kv);
+  const key = "log:8000000000000:old";
+  await kv.put(key, JSON.stringify({ at: 1, by: U, action: "create", section: "contacts", id: "old", label: "x" }));
+  assert.deepEqual(await s.undo(key, U), { ok: false, error: "Nothing to undo." });
+});
+
+test("lastLogKey is null after a write that wrote nothing", async () => {
+  const s = createStore(kvFake());
+  await s.createRecord("contacts", { name: "N" }, U);
+  assert.ok(s.lastLogKey);
+  assert.equal(await s.deleteRecord("contacts", "missing", U), false);
+  assert.equal(s.lastLogKey, null);
+  await s.createRecord("contacts", { name: "N" }, U);
+  assert.equal(await s.updateRecord("contacts", "missing", {}, U), null);
+  assert.equal(s.lastLogKey, null);
+  await s.createRecord("contacts", { name: "N" }, U);
+  assert.equal(await s.deleteFile("missing", U), false);
+  assert.equal(s.lastLogKey, null);
+  await s.createRecord("contacts", { name: "N" }, U);
+  await s.undo("log:missing", U);
+  assert.equal(s.lastLogKey, null);
 });

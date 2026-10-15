@@ -38,15 +38,17 @@ export function createStore(kv) {
   // Move a file's bytes to trash, then remove the live copy.
   async function trashFile(id, meta) {
     const { value } = await kv.getWithMetadata(`file:${id}`, "arrayBuffer");
+    if (!value) return false;
     await kv.put(`trash:file:${id}`, value, { expirationTtl: TRASH_TTL_SECONDS, metadata: meta });
     await kv.delete(`file:${id}`);
+    return true;
   }
 
   async function undoFile(entry) {
     const exists = !!(await kv.getWithMetadata(`file:${entry.id}`)).metadata;
     if (entry.after === null ? exists : !exists) return { ok: false, error: STALE_ERROR };
     if (entry.before === null) {
-      await trashFile(entry.id, entry.after);
+      if (!(await trashFile(entry.id, entry.after))) return { ok: false, error: "That file is no longer recoverable." };
     } else {
       const { value, metadata } = await kv.getWithMetadata(`trash:file:${entry.id}`, "arrayBuffer");
       if (!value) return { ok: false, error: "That file is no longer recoverable." };
@@ -73,8 +75,9 @@ export function createStore(kv) {
     },
 
     async undo(logKey, by) {
+      lastLogKey = null;
       const entry = String(logKey).startsWith("log:") ? await kv.get(logKey, "json") : null;
-      if (!entry) return { ok: false, error: "Nothing to undo." };
+      if (!entry || !("before" in entry && "after" in entry)) return { ok: false, error: "Nothing to undo." };
       const res = entry.kind === "file" ? await undoFile(entry) : await undoRecord(entry);
       if (!res.ok) return res;
       await audit("undo", by, entry.section, entry.id, entry.label, entry.after, entry.before,
@@ -88,6 +91,7 @@ export function createStore(kv) {
     },
 
     async createRecord(section, fields, by, action = "create") {
+      lastLogKey = null;
       const now = Date.now();
       const rec = {
         ...fields, id: crypto.randomUUID(), section,
@@ -100,16 +104,18 @@ export function createStore(kv) {
     },
 
     async updateRecord(section, id, fields, by) {
+      lastLogKey = null;
       const key = `rec:${section}:${id}`;
       const cur = await kv.get(key, "json");
       if (!cur) return null;
-      const rec = { ...cur, ...fields, id, section, updatedAt: Date.now(), updatedBy: by };
+      const rec = { ...cur, ...fields, id, section, updatedAt: Math.max(Date.now(), (cur.updatedAt ?? 0) + 1), updatedBy: by };
       await kv.put(key, JSON.stringify(rec));
       await audit(fields.reviewed === true && !cur.reviewed ? "confirm" : "update", by, section, id, recordLabel(section, rec), cur, rec);
       return rec;
     },
 
     async deleteRecord(section, id, by) {
+      lastLogKey = null;
       const key = `rec:${section}:${id}`;
       const cur = await kv.get(key, "json");
       if (!cur) return false;
@@ -131,6 +137,7 @@ export function createStore(kv) {
     },
 
     async putFile({ name, type, bytes, section = "", recordId = "" }, by) {
+      lastLogKey = null;
       if (bytes.byteLength > MAX_FILE_BYTES) throw new Error("Files must be 10 MB or smaller.");
       const meta = {
         id: crypto.randomUUID(), name: String(name || "file").slice(0, 200), type: String(type || "application/octet-stream").slice(0, 100),
@@ -153,9 +160,10 @@ export function createStore(kv) {
     },
 
     async deleteFile(id, by) {
+      lastLogKey = null;
       const { metadata } = await kv.getWithMetadata(`file:${id}`);
       if (!metadata) return false;
-      await trashFile(id, metadata);
+      if (!(await trashFile(id, metadata))) return false;
       await audit("delete", by, metadata.section || "files", id, metadata.name, metadata, null, { kind: "file" });
       return true;
     },
