@@ -27,6 +27,7 @@ export async function runImport({ kv, store, payload, by = BY, readFile = fsRead
   const ops = [];
   for (const op of payload.ops ?? []) {
     if (op?.op === "update" && op.appendNotes !== undefined) {
+      if (op.fields?.notes !== undefined) throw new Error("an update op cannot carry both fields.notes and appendNotes");
       const { appendNotes, ...rest } = op;
       const cur = await kv.get(`rec:${op.section}:${op.id}`, "json");
       const notes = cur?.notes ? `${cur.notes}\n${appendNotes}` : appendNotes;
@@ -60,23 +61,30 @@ async function copyRecords(from, to) {
   return n;
 }
 
-async function main(argv) {
+export async function main(argv, { rest = null, readFile = fsReadFile, log = console.log } = {}) {
   const apply = argv.includes("--apply");
   const file = argv.find((a) => !a.startsWith("--"));
-  if (!file) { console.error("usage: node scripts/apply-import.mjs <payload.json> [--apply]"); process.exit(2); }
-  const payload = JSON.parse(await fsReadFile(file, "utf8"));
-  const rest = createKvRest();
+  if (!file) throw new Error("usage: node scripts/apply-import.mjs <payload.json> [--apply]");
+  let payload;
+  try {
+    payload = JSON.parse(await readFile(file, "utf8"));
+  } catch {
+    // JSON.parse messages quote the payload text, which may be medical; keep it off the console.
+    throw new Error("payload is not readable JSON");
+  }
+  rest ??= createKvRest();
   let kv = rest;
   if (!apply) {
     kv = kvFake();
     const n = await copyRecords(rest, kv);
-    console.log(`DRY RUN (loaded ${n} records read-only; nothing is written to KV)`);
+    log(`DRY RUN (loaded ${n} records read-only; nothing is written to KV)`);
   } else {
-    console.log("APPLY: writing to the real KV namespace");
+    log("APPLY: writing to the real KV namespace");
   }
-  const report = await runImport({ kv, store: createStore(kv), payload });
-  console.log(formatReport(report));
-  if (apply) console.log(`Report id: ${report.id}`);
+  const report = await runImport({ kv, store: createStore(kv), payload, readFile });
+  log(formatReport(report));
+  if (apply) log(`Report id: ${report.id}`);
+  return report;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -13,7 +13,7 @@ Stage reached: 6 / 6 for data (live, gated, 130 records imported, MED chip live)
 ```
 
 ## Stages
-1. ✅ Code + tests (96 passing as of 2026-10-15; Coming up, import reports, undo and menu on branch `feat/coming-up-undo-menu`), pushed to `main`.
+1. ✅ Code + tests (101 passing as of 2026-10-15). v1 is on `main`; Coming up, import reports, undo and menu are built on branch `feat/coming-up-undo-menu` — deploy and first imports pending final review.
 2. ✅ Create KV: `npx wrangler kv namespace create RECORDS` → paste the printed `id` into `wrangler.toml`, commit.
 3. ✅ Deploy: `npx wrangler deploy` → attaches med.tuffcityrecords.com. (Domain answers **403** to everyone until Access adds the email header — the Worker allow-list fails closed.)
 4. ✅ Access: Zero Trust → Access → Applications → Add → Self-hosted → hostname `med.tuffcityrecords.com` → new policy **"MED — Nanci + Aaron"**: Include → Emails → `nanci@tuffcity.com`, `aaronf@tuffcity.com`. Login methods: One-time PIN + Google.

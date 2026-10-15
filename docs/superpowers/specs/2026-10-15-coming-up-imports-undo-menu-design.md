@@ -1,6 +1,6 @@
 # MED: Coming up, visit summaries, import reports, undo and menu
 
-**Date:** 2026-10-15 · **App:** med.tuffcityrecords.com · **Status:** Implemented 2026-10-15 (branch feat/coming-up-undo-menu)
+**Date:** 2026-10-15 · **App:** med.tuffcityrecords.com · **Status:** Built 2026-10-15 on branch feat/coming-up-undo-menu; deploy and first imports pending final review
 
 ## 1. Goal
 

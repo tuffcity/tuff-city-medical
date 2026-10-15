@@ -1,7 +1,7 @@
 ---
 app: MED
 url: https://med.tuffcityrecords.com
-updated: 2026-10-07
+updated: 2026-10-15
 notion:
 repo: ~/tuff-city-medical
 doc: docs/CHEAT-SHEET.md
