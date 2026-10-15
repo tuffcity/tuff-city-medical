@@ -220,3 +220,21 @@ test("lastLogKey is null after a write that wrote nothing", async () => {
   await s.undo("log:missing", U);
   assert.equal(s.lastLogKey, null);
 });
+
+test("audit keys are unique across store instances in the same millisecond", async () => {
+  const kv = kvFake();
+  const r = await createStore(kv).createRecord("contacts", { name: "N", phone: "1" }, U);
+  const realNow = Date.now;
+  const fixed = realNow() + 10_000;
+  Date.now = () => fixed;
+  try {
+    await createStore(kv).updateRecord("contacts", r.id, { phone: "2" }, U);
+    await createStore(kv).updateRecord("contacts", r.id, { phone: "3" }, U);
+  } finally {
+    Date.now = realNow;
+  }
+  const log = await createStore(kv).listAudit();
+  assert.equal(log.length, 3);
+  assert.equal(new Set(log.map((e) => e.key)).size, 3);
+  assert.match(log[0].key, /^log:\d{13}:[^:]+:[0-9a-f]{8}$/);
+});

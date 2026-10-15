@@ -1,7 +1,7 @@
 // Workers KV storage. Keys:
 //   rec:<section>:<id>   one record (JSON)
 //   file:<id>            file bytes, metadata = file info
-//   log:<inverted-ms>:<n> audit entry — inverted time so a plain list is newest first
+//   log:<inverted-ms>:<id>:<8 hex> audit entry — inverted time so a plain list is newest first
 
 import { recordLabel } from "./schema.js";
 
@@ -29,7 +29,7 @@ export function createStore(kv) {
 
   async function audit(action, by, section, id, label, before = null, after = null, extra = {}) {
     const at = tick();
-    const key = `log:${String(MAX_TS - at).padStart(13, "0")}:${id}`;
+    const key = `log:${String(MAX_TS - at).padStart(13, "0")}:${id}:${crypto.randomUUID().slice(0, 8)}`;
     await kv.put(key, JSON.stringify({ at, by, action, section, id, label, key, before, after, ...extra }));
     lastLogKey = key;
     return key;
