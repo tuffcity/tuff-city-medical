@@ -262,7 +262,7 @@ try {
   check("counter starts at 1 of 5 settled", ((await page.locator(".imp-count").textContent().catch(() => "")) || "").includes("1 of 5 settled"));
   await page.locator('.imp-item[data-n="1"] [data-a="keep"]').click().catch(() => {}); await page.waitForTimeout(300);
   await page.locator('.imp-item[data-n="2"] [data-a="undo"]').click().catch(() => {}); await page.waitForTimeout(300);
-  check("settling shows an Undo toast", await page.locator('.toast [data-act="undo"]').waitFor({ state: "visible", timeout: 3000 }).then(() => true, () => false));
+  check("settling shows a toast without Undo", (await page.locator(".toast").textContent().catch(() => "")).includes("Undone") && (await page.locator('.toast [data-act="undo"]').count()) === 0);
   await page.locator('.imp-item[data-n="3"] [data-a="choose"][data-c="past"]').click().catch(() => {}); await page.waitForTimeout(300);
   await page.locator('.imp-item[data-n="5"] [data-a="keep"]').click().catch(() => {}); await page.waitForTimeout(300);
   check("counter reaches 5 of 5 settled", ((await page.locator(".imp-count").textContent().catch(() => "")) || "").includes("5 of 5 settled"));
@@ -270,6 +270,23 @@ try {
   await tab(page, "home"); await page.waitForTimeout(200);
   check("Home banner gone once settled", (await page.locator(".imp-banner").count()) === 0);
   check("phone Home: no horizontal scroll", await noHScroll(page));
+
+  // A conflict whose record was edited after the import: Choose asks, then applies anyway.
+  const stale = await add("upcoming", { type: "to-do", title: "Stale-edit target", status: "unconfirmed" });
+  await call("POST", "/api/imports", { title: "Stale conflict", ops: [
+    { op: "conflict", label: "Status differs", detail: "Source says confirmed", choices: [
+      { id: "conf", label: "Mark confirmed", patch: { section: "upcoming", id: stale.id, fields: { status: "confirmed" } } },
+      { id: "same", label: "Leave it" }] },
+  ] });
+  await call("PUT", `/api/records/upcoming/${stale.id}`, { details: "edited after import" });
+  await page.reload(); await page.waitForSelector("h2.page");
+  await page.locator(".imp-banner").click().catch(() => {});
+  await page.waitForSelector(".imp-report", { timeout: 3000 }).catch(() => {});
+  dialogs.length = 0;
+  await page.locator('.imp-item[data-n="1"] [data-a="choose"][data-c="conf"]').click().catch(() => {}); await page.waitForTimeout(500);
+  check("stale choose asks to apply anyway", dialogs[0] === "This record was edited after the import. Apply 'Mark confirmed' anyway?", dialogs[0]);
+  check("apply anyway settles the conflict", ((await page.locator('.imp-item[data-n="1"]').textContent().catch(() => "")) || "").includes("Chose: Mark confirmed"));
+  check("record now confirmed", (await call("GET", "/api/records")).records.find((r) => r.id === stale.id)?.status === "confirmed");
 
   // ═════ Desktop ═════
   console.log("Desktop 1280px");

@@ -117,3 +117,18 @@ test("visit vitals and clinical fields", () => {
   assert.equal(r.error, undefined);
   for (const k of Object.keys(input)) assert.equal(r.value[k], input[k], k);
 });
+
+test("upcoming.time needs AM/PM (or unambiguous 24-hour)", () => {
+  const t = (time) => cleanRecord("upcoming", { type: "to-do", title: "x", time });
+  for (const ok of ["", "3:15 PM", "3:15pm", "9 AM", "12 pm", "14:30", "00:15"]) assert.equal(t(ok).error, undefined, ok);
+  for (const bad of ["3:15", "2:30", "3.15 pm", "25:00", "13:60", "0 AM", "13 PM"]) assert.equal(t(bad).error, 'Time must include AM or PM, e.g. "3:15 PM"', bad);
+});
+
+test("every accepted upcoming.time parses in the countdown", async () => {
+  const { parseTime } = await import("../public/lib/countdown.mjs");
+  const want = { "3:15 PM": [15, 15], "3:15pm": [15, 15], "9 AM": [9, 0], "12 pm": [12, 0], "12:05 AM": [0, 5], "14:30": [14, 30], "00:15": [0, 15] };
+  for (const [s, [h, m]] of Object.entries(want)) {
+    assert.equal(cleanRecord("upcoming", { type: "to-do", title: "x", time: s }).error, undefined, s);
+    assert.deepEqual(parseTime(s), { h, m }, s);
+  }
+});

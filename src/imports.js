@@ -19,17 +19,39 @@ async function listAll(kv, prefix) {
   return keys;
 }
 
-const save = async (kv, report) => {
-  report.open = isOpen(report);
-  await kv.put(`imp:${report.id}`, JSON.stringify(report));
-  return report;
-};
-
 // Report text is stored and shown; never let a sensitive value ride along in it.
 const scrub = (v) => {
   const text = String(v ?? "");
   const hit = findSensitive(text);
   return hit ? `[removed: contains ${hit}]` : text;
+};
+
+// Replace every sensitive string anywhere in a value tree (objects and arrays included).
+function scrubDeep(v) {
+  if (typeof v === "string") return scrub(v);
+  if (Array.isArray(v)) return v.map(scrubDeep);
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, scrubDeep(x)]));
+  return v;
+}
+
+// KV allows about one write per second per key; back off on a 429 (delays are overridable in tests).
+export const retry = { delays: [300, 600, 1200] };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function putWithRetry(kv, key, value) {
+  for (let i = 0; ; i++) {
+    try { return await kv.put(key, value); } catch (err) {
+      if (i >= retry.delays.length || !/429|rate/i.test(String(err?.message ?? err))) throw err;
+      await sleep(retry.delays[i]);
+    }
+  }
+}
+
+const save = async (kv, report) => {
+  const clean = scrubDeep(report);
+  clean.open = isOpen(clean);
+  await putWithRetry(kv, `imp:${clean.id}`, JSON.stringify(clean));
+  return clean;
 };
 
 const sensitiveSkip = (reason) => `Contains ${reason}; not imported.`;
@@ -99,9 +121,15 @@ export async function applyImport(store, kv, { title, source, ops }, by) {
         before: null, after: null, choices: null, decision: null, reason: scrub(`Couldn't apply: ${err?.message ?? err}`) });
     }
   }
-  const src = source && typeof source === "object"
-    ? Object.fromEntries(Object.entries(source).map(([k, v]) => [k, typeof v === "string" ? scrub(v) : v]))
-    : null;
+  // Second pass: a conflict patch is stale only if its record changed after the whole import.
+  for (const it of items) {
+    for (const ch of it.choices ?? []) {
+      if (!ch.patch) continue;
+      const cur = await kv.get(`rec:${ch.patch.section}:${ch.patch.id}`, "json");
+      if (cur) ch.patch.baseUpdatedAt = cur.updatedAt;
+    }
+  }
+  const src = source && typeof source === "object" ? source : null;
   const report = {
     id: crypto.randomUUID(), title: scrub(title ?? "Import").slice(0, 200), createdAt: Date.now(), createdBy: by,
     source: src, items,
@@ -138,7 +166,7 @@ export async function settleItem(store, kv, id, n, { action, choice } = {}, by) 
     const res = await store.undo(item.logKey, by);
     if (!res.ok) throw new Error(res.error);
     item.decision = "undone";
-  } else if (action === "choose") {
+  } else if (action === "choose" || action === "force") {
     const ch = (item.choices ?? []).find((c) => c.id === choice);
     if (!ch) throw new Error("Unknown choice.");
     if (ch.patch) {
@@ -146,7 +174,7 @@ export async function settleItem(store, kv, id, n, { action, choice } = {}, by) 
       if (v.skip) throw new Error(v.skip);
       const cur = await kv.get(`rec:${ch.patch.section}:${ch.patch.id}`, "json");
       if (!cur) throw new Error("That record no longer exists.");
-      if (cur.updatedAt !== ch.patch.baseUpdatedAt) throw new Error("This record changed since the import; review it before choosing.");
+      if (action === "choose" && cur.updatedAt !== ch.patch.baseUpdatedAt) throw new Error("This record changed since the import; review it before choosing.");
       const rec = await store.updateRecord(ch.patch.section, ch.patch.id, v.fields, by);
       if (!rec) throw new Error("That record no longer exists.");
       item.patchLogKey = store.lastLogKey;

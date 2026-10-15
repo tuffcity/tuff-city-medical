@@ -41,13 +41,13 @@ Home opens with **Coming up**: appointments, deadlines and to-dos for Aaron. Dat
 | 7 days or less | Silver glow |
 | 24 hours or less | Strong pulse (a steady bright border if the phone is set to reduce motion) |
 | Passed | Leaves Coming up; find it under **Past** |
-- Times are New York time. A deadline with no time counts to 11:59 PM. A partial date like `2027-02` has no countdown, so it shows as a to-do until the real date is set.
+- Times are New York time and need **AM or PM** (e.g. `3:15 PM`; 24-hour only like `14:30`). A bare `3:15` is refused. A deadline with no time counts to 11:59 PM. A partial date like `2027-02` has no countdown, so it shows as a to-do until the real date is set.
 - Tap an item for details, then **Mark done · Edit · Call**. Done and cancelled items leave Home at once. Items from scans arrive **Unreviewed**.
 
 ## Import reports
 Every document import (AVS, email scan) makes one report listing what was **Added**, **Updated**, **Conflicts to settle**, **Not imported** and **Coming up**.
 - Find it: menu → **Imports to review** (open ones first, "n of m settled"), or the banner on Home.
-- Per item: **Keep**, **Undo**, or for a conflict pick one of the options. A report stays open until every item is settled. **Print** is on each report.
+- Per item: **Keep**, **Undo**, or for a conflict pick one of the options. The toast after settling has no Undo (undo the item from the report instead). A report stays open until every item is settled. **Print** is on each report.
 - Birth dates and medical record numbers are never copied in (privacy rule). The original PDF is attached to the visit.
 - Claude applies imports with `node scripts/apply-import.mjs <payload> [--apply]`; the default is a dry run that shows the report without writing.
 
@@ -100,7 +100,7 @@ None of its own. No scheduled task reads or writes MED. aaronf@ scans happen onl
 | A change doesn't show right away after Claude edits data directly | Cloudflare KV can take up to ~60 s to show a new write everywhere | Wait a minute, then menu → **Refresh** |
 | Other person's change or a new version isn't showing | The page is showing old data | Menu → **Refresh** (it reloads the page too if MED was updated) |
 | "This was changed again since; undo the newer change first" | The record changed after the entry you tried to undo | Undo the newer change first (Activity) |
-| "This record changed since the import; review it before choosing" | A conflict option can't be applied over a newer edit | Open the record, decide by hand, then Keep the item |
+| "This record changed since the import; review it before choosing" | A conflict option can't be applied over a newer edit | Tap the option again and confirm **Apply anyway** (the change is audited and undoable) |
 | Coming up item has no countdown | No valid date (e.g. `2027-02` only) | Edit it and set a full date |
 | Import script says `fetch failed` / `CLOUDFLARE_API_TOKEN is not set` | Missing credential or proxy settings in the cloud session | See `docs/DEPLOY-STATE.md`, apply-import |
 

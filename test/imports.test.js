@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { kvFake } from "./kv-fake.js";
 import { createStore } from "../src/store.js";
-import { applyImport, listImports, getImport, settleItem } from "../src/imports.js";
+import { applyImport, listImports, getImport, settleItem, retry } from "../src/imports.js";
 
 const BY = "nanci@tuffcity.com";
 
@@ -171,4 +171,70 @@ test("sensitive text in report-level strings is replaced", async () => {
   const json = JSON.stringify(r);
   assert.doesNotMatch(json, /123-45-6789|1950|1960/);
   assert.match(r.items[0].label, /^\[removed: contains a birth date\]$/);
+});
+
+test("deep scrub: sensitive strings nested anywhere in the report are never stored", async () => {
+  const { kv, store, cond } = await setup();
+  const r = await applyImport(store, kv, { title: "Deep", source: { name: "a.pdf", extra: { note: "DOB 01/02/1950" }, n: [["SSN 123-45-6789"]] }, ops: [
+    { op: "skip", section: "SSN 123-45-6789", label: "x", reason: "dup" },
+    { op: "conflict", section: "DOB 01/02/1950", label: "c", choices: [
+      { id: "DOB 01/02/1950", label: "A", patch: { section: "conditions", id: cond.id, fields: { notes: "ok" } } },
+    ] },
+  ] }, BY);
+  const raw = await kv.get(`imp:${r.id}`);
+  assert.doesNotMatch(raw, /123-45-6789|01\/02\/1950/);
+  assert.match(raw, /removed: contains a birth date/);
+  assert.equal(r.source.name, "a.pdf");
+});
+
+test("conflict baseUpdatedAt is taken after all ops, so a later same-import update is not stale", async () => {
+  const { kv, store, cond } = await setup();
+  const r = await applyImport(store, kv, { title: "Order", ops: [
+    { op: "conflict", label: "C", choices: [{ id: "pdf", label: "Use PDF", patch: { section: "conditions", id: cond.id, fields: { notes: "20mg" } } }] },
+    { op: "update", section: "conditions", id: cond.id, fields: { status: "resolved" }, label: "later update" },
+  ] }, BY);
+  const out = await settleItem(store, kv, r.id, 1, { action: "choose", choice: "pdf" }, BY);
+  assert.equal(out.items[0].decision, "pdf");
+  assert.equal((await store.listRecords()).find((x) => x.id === cond.id).notes, "20mg");
+});
+
+test("force applies a stale choice as an undoable update", async () => {
+  const { kv, store, cond } = await setup();
+  const r = await applyImport(store, kv, { title: "F", ops: baseOps(cond) }, BY);
+  await store.updateRecord("conditions", cond.id, { notes: "manual edit" }, BY);
+  await assert.rejects(() => settleItem(store, kv, r.id, 3, { action: "choose", choice: "pdf" }, BY), /changed since the import/);
+  const out = await settleItem(store, kv, r.id, 3, { action: "force", choice: "pdf" }, BY);
+  assert.equal(out.items[2].decision, "pdf");
+  assert.equal((await store.listRecords()).find((x) => x.id === cond.id).notes, "20mg");
+  const res = await store.undo(out.items[2].patchLogKey, BY);
+  assert.ok(res.ok);
+  assert.equal((await store.listRecords()).find((x) => x.id === cond.id).notes, "manual edit");
+});
+
+test("save retries a 429 with backoff, then succeeds", async () => {
+  const { kv, store, cond } = await setup();
+  const real = kv.put.bind(kv);
+  let fails = 0, calls = 0;
+  kv.put = async (k, v, o) => {
+    if (k.startsWith("imp:")) { calls++; if (fails < 2) { fails++; throw new Error("KV PUT failed: 429 Too Many Requests"); } }
+    return real(k, v, o);
+  };
+  const old = retry.delays; retry.delays = [1, 1, 1];
+  try {
+    const r = await applyImport(store, kv, { title: "Retry", ops: baseOps(cond).slice(3) }, BY);
+    assert.equal(calls, 3);
+    assert.equal((await getImport(kv, r.id)).title, "Retry");
+  } finally { retry.delays = old; }
+});
+
+test("save does not retry a non-429 error", async () => {
+  const { kv, store, cond } = await setup();
+  const real = kv.put.bind(kv);
+  let calls = 0;
+  kv.put = async (k, v, o) => { if (k.startsWith("imp:")) { calls++; throw new Error("disk on fire"); } return real(k, v, o); };
+  const old = retry.delays; retry.delays = [1, 1, 1];
+  try {
+    await assert.rejects(() => applyImport(store, kv, { title: "NoRetry", ops: baseOps(cond).slice(3) }, BY), /disk on fire/);
+    assert.equal(calls, 1);
+  } finally { retry.delays = old; }
 });

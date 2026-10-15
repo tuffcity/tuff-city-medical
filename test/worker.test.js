@@ -174,3 +174,14 @@ test("new routes are 403 for a non-allow-listed email", async () => {
     assert.equal((await call(e, path, { method, headers: ADMIN, body: method === "POST" ? {} : undefined })).status, 403, path);
   }
 });
+
+test("imports: force is an accepted settle action", async () => {
+  const e = env();
+  const rec = await (await call(e, "/api/records", { method: "POST", body: { section: "conditions", name: "Example", status: "active" } })).json();
+  const id = rec.id;
+  const body = { title: "F", ops: [{ op: "conflict", label: "C", choices: [{ id: "a", label: "A", patch: { section: "conditions", id, fields: { notes: "n1" } } }] }] };
+  const rep = await (await call(e, "/api/imports", { method: "POST", body })).json();
+  const r = await call(e, `/api/imports/${rep.id}/items/1`, { method: "POST", body: { action: "force", choice: "a" } });
+  assert.equal(r.status, 200);
+  assert.equal((await r.json()).items[0].decision, "a");
+});

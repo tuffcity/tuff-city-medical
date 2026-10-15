@@ -10,6 +10,7 @@ import { readFile as fsReadFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { createStore } from "../src/store.js";
 import { applyImport } from "../src/imports.js";
+import { sensitiveReason } from "../src/guard.js";
 import { kvFake } from "../test/kv-fake.js";
 import { createKvRest } from "./lib/kv-rest.mjs";
 
@@ -19,6 +20,8 @@ export async function runImport({ kv, store, payload, by = BY, readFile = fsRead
   const source = { ...(payload.source ?? {}) };
   if (payload.attach) {
     const a = payload.attach;
+    const why = sensitiveReason(a.name);
+    if (why) throw new Error(`attach name contains ${why}; rename the file`);
     const bytes = await readFile(a.path);
     const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     const meta = await store.putFile({ name: a.name, type: a.type, bytes: ab, section: a.section, recordId: a.recordId }, by);

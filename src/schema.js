@@ -84,6 +84,8 @@ export function earliestDate(text, pick = "earliest") {
   if (valid.length === 1 && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) return valid[0];
   return v;
 }
+// upcoming.time: 12-hour with AM/PM, or 24-hour only where it can't be read as AM (00, 13-23).
+const TIME_RE = /^(?:(?:0?[1-9]|1[0-2])(?::[0-5]\d)?\s*[ap]m|(?:00|1[3-9]|2[0-3]):[0-5]\d)$/i;
 const CAP = { text: 500, long: 4000, date: 10, enum: 40 };
 
 // → { value } or { error }. `partial` = update: only fields present are checked.
@@ -102,6 +104,7 @@ export function cleanRecord(section, input, { partial = false } = {}) {
     if (fd.type === "date") v = earliestDate(v, fd.pick);
     if (fd.required && !v) return { error: `${fd.label} is required.` };
     if (v && fd.type === "date" && !DATE_RE.test(v)) return { error: `${fd.label} must be YYYY, YYYY-MM or YYYY-MM-DD.` };
+    if (v && section === "upcoming" && fd.key === "time" && !TIME_RE.test(v)) return { error: 'Time must include AM or PM, e.g. "3:15 PM"' };
     if (v && fd.type === "enum" && !fd.options.includes(v)) return { error: `${fd.label} must be one of: ${fd.options.join(", ")}.` };
     value[fd.key] = v;
   }

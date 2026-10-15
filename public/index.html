@@ -1174,16 +1174,22 @@ document.addEventListener("click", async (ev) => {
     }
     if (act === "imp-act" && S.report) {
       const { n, a, c } = t.dataset;
-      const before = S.report.items.find((i) => String(i.n) === n);
-      t.disabled = true;
-      S.report = await api(`/api/imports/${S.report.id}/items/${n}`, { method: "POST", body: JSON.stringify({ action: a, choice: c }) });
-      await fetchData();
-      const after = S.report.items.find((i) => String(i.n) === n);
-      let key = null;
-      if (a === "choose") key = after?.patchLogKey || null;
-      if (a === "undo") { const { entries } = await api("/api/audit"); key = entries.find((e) => e.undoes === before?.logKey)?.key || null; }
-      await render();
-      toast(a === "keep" ? "Kept" : a === "undo" ? "Undone" : "Choice applied", false, key);
+      const rid = S.report.id;
+      const post = (action) => api(`/api/imports/${rid}/items/${n}`, { method: "POST", body: JSON.stringify({ action, choice: c }) });
+      // One request at a time: KV allows about one write per second per report.
+      const btns = [...document.querySelectorAll('[data-act="imp-act"]')];
+      btns.forEach((b) => { b.disabled = true; });
+      try {
+        try { S.report = await post(a); } catch (e) {
+          const label = t.textContent.trim();
+          if (a === "choose" && /changed since the import/.test(e.message) && confirm(`This record was edited after the import. Apply '${label}' anyway?`)) S.report = await post("force");
+          else throw e;
+        }
+        await fetchData();
+        await render();
+        // No Undo here: undoing the data behind a settled item would leave the report wrong.
+        toast(a === "keep" ? "Kept" : a === "undo" ? "Undone" : "Choice applied");
+      } finally { btns.forEach((b) => { b.disabled = false; }); }
     }
     if (act === "imp-print") { document.body.classList.add("print-report"); setTimeout(() => window.print(), 50); }
     if (act === "print") { if (S.tab !== "home") { S.tab = "home"; await render(); } document.querySelector("details.ecard").open = true; setTimeout(() => window.print(), 50); }

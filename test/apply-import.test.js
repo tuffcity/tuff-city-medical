@@ -97,3 +97,11 @@ test("update op with both fields.notes and appendNotes is refused", async () => 
   const payload = { title: "t", ops: [{ op: "update", section: "conditions", id: "x", fields: { notes: "a" }, appendNotes: "b" }] };
   await assert.rejects(runImport({ kv, store, payload, by: BY }), /cannot carry both fields.notes and appendNotes/);
 });
+
+test("an attach name holding a birth date is refused before upload", async () => {
+  const kv = kvFake();
+  const store = createStore(kv);
+  const payload = { title: "T", attach: { path: "/fixture", name: "DOB 01/02/1950.pdf", type: "application/pdf", section: "visits", recordId: "abc" }, ops: [] };
+  await assert.rejects(() => runImport({ kv, store, payload, by: BY, readFile: async () => new Uint8Array([1]) }), /birth date/);
+  assert.equal([...kv.data.keys()].some((k) => k.startsWith("file")), false);
+});
