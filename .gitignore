@@ -10,3 +10,8 @@ data/
 med-findings*.json
 .superpowers/
 .clawness/sessions.json
+
+# Clawness — per-machine session state (memory.md and rules/ stay shared)
+.clawness/*
+!.clawness/memory.md
+!.clawness/rules/
