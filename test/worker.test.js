@@ -87,3 +87,90 @@ test("ask without API key is 503; unknown path 404", async () => {
   assert.equal((await call(e, "/api/ask", { method: "POST", body: { question: "hi" } })).status, 503);
   assert.equal((await call(e, "/api/nope")).status, 404);
 });
+
+const ADMIN = { "Cf-Access-Authenticated-User-Email": "admin@tuffcity.com" };
+
+test("version route returns MED_VERSION or dev, with security headers", async () => {
+  const e = env();
+  let r = await call(e, "/api/version");
+  assert.deepEqual(await r.json(), { version: "dev" });
+  assert.equal(r.headers.get("cache-control"), "no-store");
+  assert.equal(r.headers.get("x-frame-options"), "DENY");
+  e.MED_VERSION = "abc1234";
+  assert.deepEqual(await (await call(e, "/api/version")).json(), { version: "abc1234" });
+});
+
+test("write responses carry logKey and undo round-trips over HTTP", async () => {
+  const e = env();
+  let r = await call(e, "/api/records", { method: "POST", body: { section: "allergies", name: "Penicillin" } });
+  const rec = await r.json();
+  assert.ok(rec.logKey);
+  r = await call(e, `/api/records/allergies/${rec.id}`, { method: "PUT", body: { reaction: "hives" } });
+  const upd = await r.json();
+  assert.ok(upd.logKey && upd.logKey !== rec.logKey);
+  // stale: the create can't be undone while a newer change exists
+  r = await call(e, "/api/undo", { method: "POST", body: { key: rec.logKey } });
+  assert.equal(r.status, 409);
+  assert.ok((await r.json()).error);
+  r = await call(e, "/api/undo", { method: "POST", body: { key: upd.logKey } });
+  assert.equal(r.status, 200);
+  assert.ok((await r.json()).entry);
+  const stored = (await (await call(e, "/api/records")).json()).records[0];
+  assert.ok(!stored.reaction && !("logKey" in stored));
+  r = await call(e, `/api/records/allergies/${rec.id}`, { method: "DELETE" });
+  const del = await r.json();
+  assert.equal(del.ok, true);
+  assert.ok(del.logKey);
+  assert.equal((await call(e, "/api/undo", { method: "POST", body: { key: del.logKey } })).status, 200);
+  assert.equal((await (await call(e, "/api/records")).json()).records.length, 1);
+  assert.equal((await call(e, "/api/undo", { method: "POST", body: {} })).status, 400);
+});
+
+test("file upload and delete carry logKey; delete is undoable", async () => {
+  const e = env();
+  const form = new FormData();
+  form.set("file", new File(["hello"], "note.txt", { type: "text/plain" }));
+  const up = await (await call(e, "/api/files", { method: "POST", body: form })).json();
+  assert.ok(up.logKey && up.id);
+  const del = await (await call(e, `/api/files/${up.id}`, { method: "DELETE" })).json();
+  assert.ok(del.ok && del.logKey);
+  assert.equal((await call(e, "/api/undo", { method: "POST", body: { key: del.logKey } })).status, 200);
+  assert.equal((await call(e, `/api/files/${up.id}`)).status, 200);
+});
+
+test("imports: create, list, get, settle", async () => {
+  const e = env();
+  const body = { title: "Visit PDF", source: { name: "visit.pdf" }, ops: [
+    { op: "create", section: "allergies", fields: { name: "Latex" }, group: "added", label: "Latex allergy" },
+  ] };
+  let r = await call(e, "/api/imports", { method: "POST", body });
+  assert.equal(r.status, 201);
+  const rep = await r.json();
+  assert.equal(rep.items.length, 1);
+  const list = await (await call(e, "/api/imports")).json();
+  assert.equal(list.imports.length, 1);
+  assert.equal((await (await call(e, `/api/imports/${rep.id}`)).json()).id, rep.id);
+  assert.equal((await call(e, "/api/imports/00000000-0000-0000-0000-000000000000")).status, 404);
+  r = await call(e, `/api/imports/${rep.id}/items/1`, { method: "POST", body: { action: "undo" } });
+  assert.equal(r.status, 200);
+  assert.equal((await r.json()).items[0].decision, "undone");
+  r = await call(e, `/api/imports/${rep.id}/items/1`, { method: "POST", body: { action: "bogus" } });
+  assert.equal(r.status, 200); // already settled: returns report unchanged
+  r = await call(e, `/api/imports/${rep.id}/items/9`, { method: "POST", body: { action: "keep" } });
+  assert.equal(r.status, 404);
+  const r2 = await (await call(e, "/api/imports", { method: "POST", body })).json();
+  r = await call(e, `/api/imports/${r2.id}/items/1`, { method: "POST", body: { action: "bogus" } });
+  assert.equal(r.status, 409);
+  assert.ok((await r.json()).error);
+});
+
+test("new routes are 403 for a non-allow-listed email", async () => {
+  const e = env();
+  const id = "00000000-0000-0000-0000-000000000000";
+  for (const [method, path] of [
+    ["GET", "/api/version"], ["POST", "/api/undo"], ["GET", "/api/imports"], ["POST", "/api/imports"],
+    ["GET", `/api/imports/${id}`], ["POST", `/api/imports/${id}/items/1`],
+  ]) {
+    assert.equal((await call(e, path, { method, headers: ADMIN, body: method === "POST" ? {} : undefined })).status, 403, path);
+  }
+});
