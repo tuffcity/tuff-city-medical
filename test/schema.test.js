@@ -90,3 +90,17 @@ test("treatment plans & quotes section", () => {
   assert.equal(r.error, undefined);
   assert.match(cleanRecord("plans", { date: "2022", provider: "X", status: "maybe" }).error, /Status/);
 });
+
+test("upcoming section", () => {
+  assert.equal(cleanRecord("upcoming", { type: "deadline", title: "Medicare plan change", date: "2026-12-07" }).error, undefined);
+  assert.match(cleanRecord("upcoming", { type: "deadline", date: "2026-12-07" }).error, /Title is required/);
+  assert.match(cleanRecord("upcoming", { type: "meeting", title: "x" }).error, /Type/);
+  assert.equal(SECTIONS.upcoming.date, "date");
+});
+
+test("visit vitals and clinical fields", () => {
+  const input = { date: "2026-02-20", bp: "152/72", bmi: "30.35", issues: "Prostate cancer\nElevated blood sugar", followUp: "2027-02-20" };
+  const r = cleanRecord("visits", input);
+  assert.equal(r.error, undefined);
+  for (const k of Object.keys(input)) assert.equal(r.value[k], input[k], k);
+});
