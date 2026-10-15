@@ -9,3 +9,4 @@ data/
 *.findings.json
 med-findings*.json
 .superpowers/
+.clawness/sessions.json
