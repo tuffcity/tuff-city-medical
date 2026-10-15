@@ -13,6 +13,7 @@
 <link rel="apple-touch-icon" href="icon.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script>try { const t = localStorage.getItem("med-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
 <style>
   :root {
     --bg: #f6f4f9; --panel: #ffffff; --ink: #1e1b24; --muted: #6c6578; --faint: #9a93a6; --line: #e7e2ee;
@@ -77,7 +78,8 @@
   .btn.ok { background: var(--ok); border-color: var(--ok); color: #fff; }
   .btn.danger { color: var(--danger); }
   .btn.block { width: 100%; }
-  .btn.sm { min-height: 36px; padding: 6px 12px; font-size: 13px; border-radius: 10px; }
+  a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; color: inherit; }
+  .btn.sm { min-height: 44px; padding: 6px 12px; font-size: 13px; border-radius: 10px; }
   .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 18px; }
   @media (min-width: 640px) { .tiles { grid-template-columns: repeat(3, 1fr); } }
   .tile { text-align: left; padding: 14px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); display: grid; gap: 4px; min-height: 104px; }
@@ -107,9 +109,19 @@
   .chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
   .chip { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 7px 14px; font-size: 14px; font-weight: 600; white-space: nowrap; cursor: pointer; color: var(--muted); }
   .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-  .group { margin-bottom: 18px; }
+  .group { margin-bottom: 6px; }
+  .group.open { margin-bottom: 18px; }
   .group-h { display: flex; align-items: center; gap: 8px; margin: 0 4px 8px; }
   .group-h h3 { margin: 0; font-size: 17px; font-weight: 700; }
+  .group .group-h h3 { flex: 1; min-width: 0; }
+  .gtoggle { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 48px; border: 0; background: none; padding: 4px 0; cursor: pointer; text-align: left; font-size: 17px; font-weight: 700; color: var(--ink); }
+  .gtoggle .gname { overflow-wrap: anywhere; }
+  .gchev { display: inline-flex; color: var(--faint); transition: transform .18s ease; flex: none; }
+  .group.open .gchev { transform: rotate(90deg); }
+  .gbody { display: grid; grid-template-rows: 0fr; visibility: hidden; transition: grid-template-rows .18s ease, visibility .18s; }
+  .group.open .gbody { grid-template-rows: 1fr; visibility: visible; }
+  .gin { min-height: 0; overflow: hidden; }
+  @media (prefers-reduced-motion: reduce) { .gbody, .gchev { transition: none; } }
   .group-h .n { color: var(--faint); font-weight: 600; font-size: 14px; }
   .group-h .btn { margin-left: auto; }
   .list { list-style: none; margin: 0; padding: 0; overflow: hidden; }
@@ -127,7 +139,9 @@
   .chev { color: var(--faint); flex: none; }
   .more { display: block; width: 100%; border: 0; border-top: 1px solid var(--line); background: none; padding: 12px; font-weight: 600; color: var(--accent); cursor: pointer; }
   .empty { padding: 18px; color: var(--muted); font-size: 15px; text-align: center; }
-  .legend { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; margin: -4px 4px 12px; }
+  .legend { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; margin: -4px 4px 8px; flex-wrap: wrap; }
+  .legend .gall { margin-left: auto; display: flex; align-items: center; }
+  .legend .gall .linkbtn { font-size: 14px; padding: 0 8px; text-decoration: none; }
 
   /* ── Costs ── */
   .cost-card { padding: 14px 16px; margin-bottom: 14px; }
@@ -198,12 +212,147 @@
   .note { background: var(--warn-bg); color: var(--warn); border-radius: 12px; padding: 10px 14px; font-size: 14px; margin-bottom: 14px; }
 
   /* Toast */
-  .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--nav-h) + 16px + env(safe-area-inset-bottom)); z-index: 30; background: var(--ink); color: var(--bg); padding: 12px 16px; border-radius: 14px; font-size: 14px; font-weight: 600; max-width: calc(100vw - 32px); box-shadow: 0 6px 24px rgba(0,0,0,.25); }
+  .toast { display: flex; align-items: center; gap: 12px; position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--nav-h) + 16px + env(safe-area-inset-bottom)); z-index: 30; background: var(--ink); color: var(--bg); padding: 12px 16px; border-radius: 14px; font-size: 14px; font-weight: 600; max-width: calc(100vw - 32px); box-shadow: 0 6px 24px rgba(0,0,0,.25); }
   .toast.bad { background: var(--danger); color: #fff; }
+  .toast.top { top: calc(12px + env(safe-area-inset-top)); bottom: auto; }
+  .toast-undo { border: 0; background: var(--bg); color: var(--accent); font-weight: 700; border-radius: 10px; padding: 0 16px; min-height: 44px; cursor: pointer; flex: none; }
   @media (min-width: 900px) { .toast { bottom: 24px; } }
 
+  /* ── Menu button & drawer ── */
+  .burger { width: 44px; height: 44px; border: 0; background: none; border-radius: 12px; font-size: 22px; line-height: 1; cursor: pointer; display: grid; place-items: center; flex: none; margin-left: -8px; color: var(--ink); }
+  .burger:hover { background: var(--soft); }
+  dialog.drawer { margin: 0; padding: 0; border: 0; inset: 0 auto 0 0; width: min(86vw, 340px); height: 100dvh; max-height: 100dvh; max-width: none; background: var(--panel); color: var(--ink); overflow: hidden; box-shadow: 0 0 40px rgba(0,0,0,.3); }
+  dialog.drawer[open] { animation: slidein .2s ease-out; }
+  dialog.drawer::backdrop { background: rgba(10, 8, 14, .5); }
+  @keyframes slidein { from { transform: translateX(-100%); } to { transform: none; } }
+  @keyframes dropin { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  .drawer-in { height: 100%; overflow-y: auto; padding: env(safe-area-inset-top) 0 calc(16px + env(safe-area-inset-bottom)); }
+  @media (min-width: 900px) {
+    dialog.drawer { inset: auto; top: 62px; left: max(16px, calc(50vw - 430px)); height: auto; width: 340px; max-height: calc(100dvh - 80px); border: 1px solid var(--line); border-radius: 16px; }
+    dialog.drawer[open] { animation: dropin .15s ease-out; }
+    dialog.drawer::backdrop { background: rgba(10, 8, 14, .12); }
+    .drawer-in { height: auto; max-height: calc(100dvh - 80px); padding: 0 0 8px; }
+  }
+  @media (prefers-reduced-motion: reduce) { dialog.drawer[open] { animation: none; } }
+  .mh { padding: 16px 18px 12px; border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: center; }
+  .mh b { font-size: 17px; }
+  .mh small { display: block; color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+  .mg { padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .mg:last-child { border-bottom: 0; }
+  .mg h4 { margin: 8px 10px 2px; font: 700 11px Inter, sans-serif; letter-spacing: 1.2px; text-transform: uppercase; color: var(--faint); }
+  .mi { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 6px 10px; border: 0; background: none; border-radius: 12px; text-align: left; cursor: pointer; font-size: 16px; font-weight: 600; color: var(--ink); text-decoration: none; }
+  button.mi:hover, a.mi:hover, .mi:focus-visible { background: var(--soft); }
+  .mi .ic { width: 32px; height: 32px; border-radius: 9px; background: var(--soft); display: grid; place-items: center; font-size: 16px; flex: none; }
+  .mi .mt { flex: 1; min-width: 0; }
+  .count { min-width: 26px; padding: 0 8px; height: 24px; line-height: 24px; border-radius: 12px; background: var(--soft); color: var(--muted); font-size: 13px; font-weight: 700; text-align: center; }
+  .count.on { background: var(--warn); color: #fff; }
+  .mi.appear { flex-wrap: wrap; cursor: default; }
+  .seg { display: flex; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 2px; }
+  .seg button { border: 0; background: none; min-height: 44px; padding: 0 10px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--muted); }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .mi.logout { color: var(--danger); }
+  .mi.logout .ic { background: var(--danger-bg); }
+  .inline-menu { margin-bottom: 18px; overflow: hidden; }
+  .linkbtn { border: 0; background: none; color: var(--accent); font-weight: 600; font-size: 15px; padding: 8px 0; min-height: 44px; cursor: pointer; text-align: left; text-decoration: underline; text-underline-offset: 3px; }
+
+  /* ── Coming up ── */
+  .cu-h { display: flex; align-items: center; gap: 8px; margin: 6px 0 12px; }
+  .cu-h h2.page { margin: 0; flex: 1; min-width: 0; }
+  .cu-strip { margin-bottom: 20px; }
+  .cu-cards { display: grid; gap: 14px; margin-bottom: 12px; }
+  @media (min-width: 640px) { .cu-cards { grid-template-columns: repeat(2, 1fr); } }
+  .cu-card { text-align: left; display: grid; gap: 4px; align-content: start; padding: 16px; border-radius: var(--radius); background: var(--panel); border: 2px solid var(--line); cursor: pointer; width: 100%; min-width: 0; color: var(--ink); }
+  .cu-card.far { border-color: #5b2a9e; box-shadow: 0 0 0 1px rgba(91,42,158,.35), 0 0 20px rgba(91,42,158,.5); }
+  .cu-card.near { border-color: #c0c4cc; box-shadow: 0 0 0 1px rgba(160,165,175,.6), 0 0 20px rgba(160,165,175,.85); }
+  .cu-card.imminent { border-color: #a855f7; animation: cu-pulse 1.4s ease-in-out infinite; }
+  @keyframes cu-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(168,85,247,.55), 0 0 8px rgba(168,85,247,.45); }
+    50% { box-shadow: 0 0 0 5px rgba(168,85,247,.9), 0 0 30px rgba(168,85,247,.85); }
+  }
+  @media (prefers-reduced-motion: reduce) { .cu-card.imminent { animation: none; box-shadow: 0 0 0 4px #a855f7; } }
+  .cu-top { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; }
+  .cu-title { font-weight: 700; font-size: 18px; line-height: 1.25; overflow-wrap: anywhere; min-width: 0; }
+  .cu-chip { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--soft); color: var(--accent); white-space: nowrap; }
+  .cu-chip.unconfirmed { background: var(--warn-bg); color: var(--warn); }
+  .cu-chip.confirmed { background: var(--ok-bg); color: var(--ok); }
+  .cu-chip.needs-action { background: var(--danger-bg); color: var(--danger); }
+  .cu-when { font-weight: 600; }
+  .cu-where, .cu-action { font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+  .cu-action { color: var(--warn); font-weight: 600; }
+  .cu-count { font: 700 22px/1.2 Inter, sans-serif; font-variant-numeric: tabular-nums; color: var(--accent); margin-top: 4px; }
+  .cu-sub { font-size: 12px; color: var(--muted); font-weight: 700; margin: 4px 4px 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .cu-todo { display: flex; align-items: center; border-top: 1px solid var(--line); }
+  .cu-todo:first-child { border-top: 0; }
+  .cu-done { width: 56px; min-height: 56px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; flex: none; }
+  .cu-done .box { width: 24px; height: 24px; border: 2px solid var(--faint); border-radius: 7px; }
+  .cu-done:hover .box { border-color: var(--ok); background: var(--ok-bg); }
+  .cu-todo-t { flex: 1; min-width: 0; text-align: left; border: 0; background: none; padding: 14px 14px 14px 0; font-weight: 600; font-size: 16px; cursor: pointer; min-height: 56px; overflow-wrap: anywhere; color: var(--ink); }
+  .cu-big { border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; background: var(--soft); display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; }
+  .cu-big span { color: var(--accent); font-weight: 700; }
+  .cu-list { margin-bottom: 18px; }
+  .imp-banner { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px; margin: 4px 0 14px; text-align: left; cursor: pointer; background: var(--warn-bg); color: var(--warn); border-color: transparent; min-height: 56px; }
+  .imp-banner .ic { font-size: 22px; }
+  .imp-banner b { font-size: 16px; display: block; }
+  .imp-banner small { display: block; font-weight: 500; font-size: 13px; }
+  .imp-banner .chev { margin-left: auto; color: inherit; }
+
+  /* ── Visit card ── */
+  .vc-head { margin-bottom: 4px; }
+  .vc-reason { font-size: 18px; font-weight: 700; }
+  .vc-head a { display: inline-block; padding: 8px 0; margin-right: 12px; }
+  .vc-h { font: 700 11px Inter, sans-serif; letter-spacing: 1.2px; text-transform: uppercase; color: var(--accent); margin: 16px 0 8px; }
+  .vitals { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  @media (min-width: 500px) { .vitals { grid-template-columns: repeat(3, 1fr); } }
+  .vital { background: var(--bg); border-radius: 12px; padding: 10px 12px; border: 2px solid transparent; min-width: 0; }
+  .vital .vl { display: block; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .vital b { font-size: 19px; overflow-wrap: anywhere; }
+  .vital .delta { margin-left: 6px; font-size: 14px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .vital.flag { border-color: var(--danger); background: var(--danger-bg); }
+  .vital.flag b { color: var(--danger); }
+  .vflag { display: block; font-size: 11.5px; font-weight: 700; color: var(--danger); text-transform: uppercase; letter-spacing: .6px; }
+  .vc-note { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  .ichips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ichip { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 8px 14px; font-size: 14px; font-weight: 600; min-height: 44px; display: inline-flex; align-items: center; gap: 6px; overflow-wrap: anywhere; max-width: 100%; text-align: left; }
+  button.ichip { cursor: pointer; background: var(--soft); color: var(--accent); border-color: transparent; }
+  .ichip em { font-style: normal; font-size: 11px; font-weight: 700; background: var(--warn-bg); color: var(--warn); border-radius: 999px; padding: 2px 8px; text-transform: uppercase; letter-spacing: .5px; }
+  .checklist { list-style: none; margin: 0; padding: 0; }
+  .checklist li { padding: 7px 0 7px 28px; position: relative; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+  .checklist li:first-child { border-top: 0; }
+  .checklist li::before { content: "✓"; position: absolute; left: 4px; color: var(--ok); font-weight: 700; }
+  .instr { white-space: pre-wrap; background: var(--soft); border-radius: 12px; padding: 12px; overflow-wrap: anywhere; }
+
+  /* ── Vitals trend ── */
+  .vitals-trend { padding: 14px 16px; margin-bottom: 14px; overflow-x: auto; }
+  .vitals-trend table { width: 100%; border-collapse: collapse; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+  .vitals-trend th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 4px 8px 6px 0; }
+  .vitals-trend td { padding: 7px 8px 7px 0; border-top: 1px solid var(--line); white-space: nowrap; }
+  .vitals-trend td.flag { color: var(--danger); font-weight: 700; }
+
+  /* ── Import reports ── */
+  .imp-meta { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+  .imp-count { color: var(--ink); }
+  .imp-sec { margin-bottom: 16px; }
+  .imp-sec h3 { font-size: 17px; margin: 0 4px 8px; }
+  .imp-sec h3 .n { color: var(--faint); font-size: 14px; font-weight: 600; }
+  .imp-src { padding: 14px 16px; overflow-wrap: anywhere; }
+  .imp-item { padding: 12px 14px; border-top: 1px solid var(--line); }
+  .imp-item:first-child { border-top: 0; }
+  .imp-l { overflow-wrap: anywhere; }
+  .imp-item .sec { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  .imp-dec { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 9px; background: var(--ok-bg); color: var(--ok); white-space: nowrap; }
+  .imp-item .s { font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+  .imp-changes { margin: 6px 0 0; padding-left: 18px; font-size: 14px; overflow-wrap: anywhere; }
+  .imp-changes s { color: var(--muted); }
+  .imp-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .imp-btns:empty { display: none; }
+  .log .lrow { display: flex; align-items: center; gap: 10px; }
+  .log .lrow > div { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .help li { margin: 0 0 10px; }
+
   @media print {
-    .appbar, nav, .tools, .noprint, .tiles, .review-card, .group, .toast, dialog { display: none !important; }
+    .appbar, nav, .tools, .noprint, .tiles, .review-card, .group, .toast, dialog, .cu-strip, .imp-banner, .legend, .vitals-trend { display: none !important; }
+    body.print-report main > :not(.imp-report) { display: none !important; }
+    .imp-report .panel { box-shadow: none; border-color: #999; }
     body { background: #fff; color: #000; }
     main { padding: 0; }
     details.ecard { border: 2px solid #000; box-shadow: none; }
@@ -216,8 +365,9 @@
 <body>
 <header class="appbar">
   <div class="in">
+    <button class="burger" data-act="menu" aria-label="Open menu" aria-haspopup="dialog">☰</button>
     <span class="logo">MED</span>
-    <h1>Aaron Fuchs<small>Medical · Dental · Insurance</small></h1>
+    <h1>Aaron Fuchs<small id="updAgo" class="upd-ago">Medical · Dental · Insurance</small></h1>
     <div class="toptabs" id="toptabs"></div>
     <span class="avatar" id="avatar" title=""></span>
   </div>
@@ -226,16 +376,20 @@
 <nav class="bottom" id="bottomnav"></nav>
 
 <dialog class="sheet" id="sheet"><div class="sheet-in" id="sheetIn"></div></dialog>
+<dialog class="drawer" id="menu" aria-modal="true" aria-label="Menu"><div class="drawer-in" id="menuIn"></div></dialog>
 <input type="file" id="importFile" accept="application/json,.json" class="hidden" />
-<div class="toast hidden" id="toast"></div>
+<div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
 
-<script>
+<script type="module">
+import { targetMs, parts, tier, comingUp, parseTime } from "/lib/countdown.mjs";
+import { num, bpParts, delta, flags, trend } from "/lib/vitals.mjs";
+
 const ICONS = {
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
   medical: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.5-9-9.5C1.5 7 4.5 4 7.5 4c2 0 3.5 1 4.5 2.5C13 5 14.5 4 16.5 4 19.5 4 22.5 7 21 11.5 19 16.5 12 21 12 21z"/></svg>',
   dental: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3c-2.5 0-4 2-4 4.5 0 3 1.5 4.5 2 7 .5 2.5 1 6.5 2.5 6.5S9.5 17 12 17s3 4 4.5 4 2-4 2.5-6.5 2-4 2-7C21 5 19.5 3 17 3c-2 0-3 1-5 1S9 3 7 3z"/></svg>',
   insurance: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>',
-  more: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>',
+  more: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
   chev: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
   search: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
 };
@@ -269,28 +423,39 @@ const LAYOUT = {
 const SUB = {
   providers: ["specialty", "phone"], visits: ["provider", "charged"], procedures: ["provider", "charged"], plans: ["total", "status"], conditions: ["status"],
   medications: ["dose", "status"], allergies: ["reaction", "severity"], immunizations: ["notes"],
-  insurance: ["plan", "memberId"], claims: ["amount", "status"], contacts: ["relation", "phone"],
+  insurance: ["plan", "memberId"], claims: ["amount", "status"], contacts: ["relation", "phone"], upcoming: ["time", "provider", "status"],
 };
 const PREVIEW = 6;
+const LOGOUT_URL = "/cdn-cgi/access/logout";
 
-const S = { me: null, schema: {}, records: [], files: [], tab: "home", sub: null, chat: [], q: "", onlyReview: false, expanded: {} };
+const S = { me: null, schema: {}, records: [], files: [], imports: [], report: null, version: null, loadedAt: 0,
+  tab: "home", sub: null, chat: [], q: "", onlyReview: false, expanded: {}, sheetId: null, sheetMode: null };
 try { const t = localStorage.getItem("med-tab"); if (TABS.some((x) => x.id === t)) S.tab = t; } catch {}
+// Open/closed state of each section group, per device, keyed "tab:group".
+let GROUPS = {};
+try { GROUPS = JSON.parse(localStorage.getItem("med-groups") || "{}") || {}; } catch {}
+const saveGroups = () => { try { localStorage.setItem("med-groups", JSON.stringify(GROUPS)); } catch {} };
 
 const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const fmtDate = (d) => {
   if (!d) return "";
   const [y, m, day] = d.split("-").map(Number);
   if (!m) return String(y);
   return day ? `${MONTHS[m - 1]} ${day}, ${y}` : `${MONTHS[m - 1]} ${y}`;
 };
+const dateTime = (ms) => new Date(ms).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 // Stacked date for list rows: "Mar 14" over "2024", or just the year.
 const whenHtml = (d) => {
   if (!d) return `<div class="when nodate">—</div>`;
   const [y, m, day] = d.split("-").map(Number);
   return `<div class="when"><b>${m ? MONTHS[m - 1] + (day ? " " + day : "") : y}</b>${m ? `<span>${y}</span>` : ""}</div>`;
 };
+const lines = (v) => String(v || "").split(/\n+/).map((s) => s.trim()).filter(Boolean);
+// Write responses carry the audit key; keep it out of the records we hold.
+const clean = (r) => { if (!r || typeof r !== "object") return r; const { logKey, ...rest } = r; return rest; };
 
 async function api(path, opts = {}) {
   const res = await fetch(path, { ...opts, headers: opts.body && !(opts.body instanceof FormData) ? { "content-type": "application/json" } : {} });
@@ -299,13 +464,30 @@ async function api(path, opts = {}) {
   return data;
 }
 
+async function fetchData() {
+  const [recs, files, imps] = await Promise.all([api("/api/records"), api("/api/files"), api("/api/imports")]);
+  S.records = recs.records; S.files = files.files; S.imports = imps.imports;
+  S.loadedAt = Date.now(); updAgo();
+}
+
 async function load() {
-  const [me, schema, recs, files] = await Promise.all([api("/api/me"), api("/api/schema"), api("/api/records"), api("/api/files")]);
-  S.me = me; S.schema = schema; S.records = recs.records; S.files = files.files;
+  const [me, schema, ver] = await Promise.all([api("/api/me"), api("/api/schema"), api("/api/version").catch(() => ({}))]);
+  S.me = me; S.schema = schema; S.version = ver.version || null;
+  await fetchData();
   $("#avatar").textContent = (me.email[0] || "?").toUpperCase();
   $("#avatar").title = me.email;
   render();
+  setInterval(tick, 30000);
+  setInterval(updAgo, 60000);
 }
+
+const agoText = () => {
+  const m = Math.floor((Date.now() - S.loadedAt) / 60000);
+  if (m < 1) return "Updated just now";
+  if (m < 60) return `Updated ${m} min ago`;
+  return `Updated ${Math.floor(m / 60)} h ago`;
+};
+function updAgo() { if (S.loadedAt) document.querySelectorAll(".upd-ago").forEach((e) => { e.textContent = agoText(); }); }
 
 const unreviewed = () => S.records.filter((r) => r.reviewed === false).sort(byDate);
 const bySection = (s) => S.records.filter((r) => r.section === s);
@@ -325,22 +507,107 @@ const matches = (r) => {
   return Object.values(r).some((v) => typeof v === "string" && v.toLowerCase().includes(q));
 };
 
+/* ── Toast (with Undo for writes) ── */
 let toastTimer;
-function toast(text, bad = false) {
+function toast(text, bad = false, undoKey = null) {
   const t = $("#toast");
-  t.textContent = text; t.className = "toast" + (bad ? " bad" : "");
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add("hidden"), bad ? 6000 : 3200);
+  // A modal dialog makes everything outside it inert, so the toast lives inside the open one.
+  const host = (sheet.open && sheet) || (menuEl.open && menuEl) || document.body;
+  if (t.parentNode !== host) host.appendChild(t);
+  t.innerHTML = `<span>${esc(text)}</span>${undoKey ? `<button class="toast-undo" data-act="undo" data-key="${esc(undoKey)}">Undo</button>` : ""}`;
+  t.className = "toast" + (bad ? " bad" : "") + (host !== document.body ? " top" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add("hidden"), undoKey ? 8000 : bad ? 6000 : 3200);
 }
 
 function renderNav() {
   const n = unreviewed().length;
-  const btn = (t, cls) => `<button data-tab="${t.id}" class="${S.tab === t.id ? "on" : ""}">${cls ? ICONS[t.id] : ""}${esc(t.label)}${cls && t.id === "home" && n ? `<span class="pip">${n}</span>` : ""}</button>`;
+  const btn = (t, icons) => t.id === "more"
+    ? `<button data-act="menu" aria-haspopup="dialog" class="${S.tab === "more" ? "on" : ""}">${icons ? ICONS.more : ""}${esc(t.label)}</button>`
+    : `<button data-tab="${t.id}" class="${S.tab === t.id ? "on" : ""}">${icons ? ICONS[t.id] : ""}${esc(t.label)}${icons && t.id === "home" && n ? `<span class="pip">${n}</span>` : ""}</button>`;
   $("#bottomnav").innerHTML = TABS.map((t) => btn(t, true)).join("");
   $("#toptabs").innerHTML = TABS.map((t) => btn(t, false)).join("");
 }
 
+/* ── Coming up ── */
+function whenText(r) {
+  const m = String(r.date || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return r.date ? fmtDate(r.date) : "";
+  const wd = WEEKDAYS[new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).getUTCDay()];
+  const yr = +m[1] !== new Date(Date.now()).getFullYear() ? `, ${m[1]}` : "";
+  const time = parseTime(r.time) ? String(r.time).trim() : r.type === "deadline" ? "by end of day" : "all day";
+  return `${wd} ${MONTHS[+m[2] - 1]} ${+m[3]}${yr} · ${time}`;
+}
+function countText(t, now) {
+  const p = parts(t, now);
+  if (p.past) return "passed";
+  return p.d ? `in ${p.d}d ${p.h}h ${p.m}m` : p.h ? `in ${p.h}h ${p.m}m` : `in ${p.m}m`;
+}
+function cuCard(r, now) {
+  const t = targetMs(r.date, r.time);
+  const where = [r.provider, r.location].filter(Boolean).join(" · ");
+  const status = r.fromVisit ? "visit" : r.status;
+  return `<button class="cu-card ${tier(t, now)}" data-act="open" data-id="${r.id}" data-t="${t}">
+    <span class="cu-top"><span class="cu-title">${esc(r.title || r.reason || "Visit")}</span>${status ? `<span class="cu-chip ${esc(status.replace(/\s+/g, "-"))}">${esc(status)}</span>` : ""}</span>
+    <span class="cu-when">${esc(whenText(r))}</span>
+    ${where ? `<span class="cu-where">${esc(where)}</span>` : ""}
+    ${r.actionNeeded ? `<span class="cu-action">⚑ ${esc(r.actionNeeded)}</span>` : ""}
+    <span class="cu-count">${esc(countText(t, now))}</span>
+  </button>`;
+}
+const todoRow = (r) => `<div class="cu-todo">
+  <button class="cu-done" data-act="cu-done" data-id="${r.id}" aria-label="Mark ${esc(r.title)} done"><span class="box"></span></button>
+  <button class="cu-todo-t" data-act="open" data-id="${r.id}">${esc(r.title)}${r.reviewed === false ? ` <span class="dot" style="display:inline-block" title="Needs review"></span>` : ""}</button></div>`;
+
+function cuStrip() {
+  const now = Date.now();
+  const { dated, todos } = comingUp(S.records, now);
+  return `<section class="cu-strip" aria-label="Coming up">
+    <div class="cu-h"><h2 class="page">Coming up</h2>
+      <button class="btn sm" data-act="sub-comingup">See all</button>
+      <button class="btn sm" data-act="add" data-s="upcoming" data-def='{"type":"appointment","status":"unconfirmed"}'>+ Add</button></div>
+    ${dated.length ? `<div class="cu-cards">${dated.map((r) => cuCard(r, now)).join("")}</div>` : `<div class="panel empty" style="margin-bottom:12px">Nothing scheduled.</div>`}
+    ${todos.length ? `<div class="cu-sub">To-dos</div><div class="panel cu-todos">${todos.map(todoRow).join("")}</div>` : ""}
+  </section>`;
+}
+
+// Every 30 s: update countdown text and glow in place (no full re-render).
+function tick() {
+  const now = Date.now();
+  let gone = false;
+  document.querySelectorAll(".cu-card[data-t]").forEach((el) => {
+    const t = Number(el.dataset.t), tr = tier(t, now);
+    if (tr === "past") { gone = true; return; }
+    if (!el.classList.contains(tr)) { el.classList.remove("far", "near", "imminent"); el.classList.add(tr); }
+    const c = el.querySelector(".cu-count");
+    if (c) c.textContent = countText(t, now);
+  });
+  if (gone && S.tab === "home" && !sheet.open && !menuEl.open) render();
+}
+
+function renderComingUp() {
+  const now = Date.now();
+  const { dated, todos } = comingUp(S.records, now);
+  const ups = bySection("upcoming");
+  const past = ups.filter((r) => { if (r.status === "done" || r.status === "cancelled") return false; const t = targetMs(r.date, r.time); return t !== null && t < now; }).sort(byDate);
+  const done = ups.filter((r) => r.status === "done" || r.status === "cancelled").sort(byDate);
+  const block = (h, list) => `<section class="cu-list"><div class="group-h"><h3>${h}</h3><span class="n">${list.length}</span></div>
+    <div class="panel list">${list.length ? `<ul class="list">${list.map((r) => itemHtml(r)).join("")}</ul>` : `<div class="empty">None.</div>`}</div></section>`;
+  return `<button class="btn sm" data-act="tab-home" style="margin-bottom:10px">‹ Home</button>
+  <div class="cu-h"><h2 class="page">Coming up</h2><button class="btn sm" data-act="add" data-s="upcoming" data-def='{"type":"appointment","status":"unconfirmed"}'>+ Add</button></div>
+  ${block("Upcoming", dated)}${block("To-dos", todos)}${block("Past", past)}${block("Done &amp; cancelled", done)}`;
+}
+
 /* ── Home ── */
 function li(items, fmt) { return items.length ? `<ul>${items.map((x) => `<li>${fmt(x)}</li>`).join("")}</ul>` : `<div class="none">None on record</div>`; }
+
+function importBanner() {
+  const open = S.imports.filter((i) => i.open), n = open.length;
+  if (!n) return "";
+  // One open report goes straight to it; several go to the list.
+  return `<button class="panel imp-banner noprint" ${n === 1 ? `data-act="imp" data-id="${open[0].id}"` : `data-act="sub-imports"`}><span class="ic">📥</span>
+    <span><b>${n} import${n === 1 ? "" : "s"} to review</b><small>Keep, undo or decide each item</small></span><span class="chev">${ICONS.chev}</span></button>`;
+}
 
 function renderHome() {
   const total = S.records.length, todo = unreviewed().length, done = total - todo;
@@ -351,7 +618,8 @@ function renderHome() {
   const ins = bySection("insurance").sort(byDate);
   const provs = bySection("providers").sort(byDate);
   const tile = (ic, lbl, val, tab, cls = "") => `<button class="tile ${cls}" data-tab="${tab}"><span class="ic">${ic}</span><span class="lbl">${esc(lbl)}</span><span class="val">${esc(val)}</span></button>`;
-  return `<h2 class="page">Overview</h2>
+  return `${importBanner()}${cuStrip()}
+  <h2 class="page">Overview</h2>
   ${todo ? `<div class="panel review-card noprint">
       <div class="row1"><span><b class="big">${todo}</b> to review</span><span style="color:var(--muted);font-size:14px">${done} of ${total} confirmed</span></div>
       <div class="bar"><i style="width:${total ? Math.round((done / total) * 100) : 0}%"></i></div>
@@ -392,19 +660,33 @@ function itemHtml(r, showSection = false) {
   </li>`;
 }
 
+const filtering = () => !!(S.q || S.onlyReview);
+// A collapsible group. Collapsed by default; remembered per device; a search opens the
+// groups with matches and hides the rest.
 function groupHtml(section, filter, defaults, title) {
   const def = S.schema[section];
   const key = section + (title || "");
+  const gkey = `${S.tab}:${key}`;
   const all = bySection(section).filter(filter || (() => true));
   const list = all.filter(matches).sort(byDate);
-  if ((S.q || S.onlyReview) && !list.length) return "";
+  if (filtering() && !list.length) return "";
+  const open = filtering() ? true : GROUPS[gkey] === true;
+  const needs = all.some((r) => r.reviewed === false);
   const shown = S.expanded[key] || S.q ? list : list.slice(0, PREVIEW);
-  return `<section class="group">
-    <div class="group-h"><h3>${esc(title || def.label)}</h3><span class="n">${list.length}</span>
+  const bodyId = "g-" + gkey.replace(/[^a-z0-9]/gi, "-");
+  return `<section class="group${open ? " open" : ""}" data-g="${esc(gkey)}">
+    <div class="group-h">
+      <h3><button class="gtoggle" data-act="gtoggle" aria-expanded="${open}" aria-controls="${bodyId}"><span class="gchev">${ICONS.chev}</span><span class="gname">${esc(title || def.label)}</span><span class="n">${list.length}</span>${needs ? `<span class="dot" title="Needs review"></span>` : ""}</button></h3>
       <button class="btn sm noprint" data-act="add" data-s="${section}" data-def='${esc(JSON.stringify(defaults || {}))}'>+ Add</button></div>
-    <div class="panel list">${list.length ? `<ul class="list">${shown.map((r) => itemHtml(r)).join("")}</ul>` : `<div class="empty">Nothing recorded yet.</div>`}
-    ${list.length > shown.length ? `<button class="more" data-act="expand" data-k="${esc(key)}">Show all ${list.length}</button>` : ""}</div>
+    <div class="gbody" id="${bodyId}"><div class="gin"><div class="panel list">${list.length ? `<ul class="list">${shown.map((r) => itemHtml(r)).join("")}</ul>` : `<div class="empty">Nothing recorded yet.</div>`}
+    ${list.length > shown.length ? `<button class="more" data-act="expand" data-k="${esc(key)}">Show all ${list.length}</button>` : ""}</div></div></div>
   </section>`;
+}
+
+function setGroup(g, open) {
+  g.classList.toggle("open", open);
+  g.querySelector(".gtoggle")?.setAttribute("aria-expanded", String(open));
+  if (!filtering()) GROUPS[g.dataset.g] = open;
 }
 
 function toolsHtml(placeholder) {
@@ -436,35 +718,72 @@ function costSummary(tab) {
   </div>`;
 }
 
+// BP, weight and BMI across visits that have them, newest first.
+function vitalsTrend() {
+  const rows = trend(S.records.filter((r) => r.section === "visits" && !isDental(r)));
+  if (!rows.length) return "";
+  const td = (v, f, k) => `<td class="${f.has(k) ? "flag" : ""}">${esc(v[k] || "—")}</td>`;
+  return `<div class="panel vitals-trend"><div class="cost-h">📈 Vitals trend <span>newest first</span></div>
+    <table><thead><tr><th>Date</th><th>BP</th><th>Weight</th><th>BMI</th></tr></thead>
+    <tbody>${rows.map((v) => { const f = flags(v); return `<tr><td>${esc(fmtDate(v.date))}</td>${td(v, f, "bp")}${td(v, f, "weight")}${td(v, f, "bmi")}</tr>`; }).join("")}</tbody></table></div>`;
+}
+
 function renderSection(tab) {
   const title = { medical: "Medical", dental: "Dental", insurance: "Insurance" }[tab];
   const groups = LAYOUT[tab].map(([s, f, d, t]) => groupHtml(s, f, d, t)).join("");
-  return `<h2 class="page">${title}</h2>${tab !== "insurance" ? costSummary(tab) : ""}${toolsHtml("Search " + title.toLowerCase() + "…")}
-    <div class="legend"><span class="dot"></span> needs review · newest first</div>
+  return `<h2 class="page">${title}</h2>${tab === "medical" ? vitalsTrend() : ""}${tab !== "insurance" ? costSummary(tab) : ""}${toolsHtml("Search " + title.toLowerCase() + "…")}
+    <div class="legend noprint"><span class="dot"></span> needs review · newest first
+      <span class="gall"><button class="linkbtn" data-act="gall" data-v="1">Expand all</button>·<button class="linkbtn" data-act="gall" data-v="0">Collapse all</button></span></div>
     ${groups || `<div class="empty">No matches.</div>`}`;
 }
 
-/* ── More ── */
+/* ── Menu (drawer on phones, drop-down on wide screens; also the More page) ── */
+const currentTheme = () => document.documentElement.dataset.theme || "auto";
+function setTheme(v) {
+  if (v === "light" || v === "dark") document.documentElement.dataset.theme = v;
+  else { v = "auto"; delete document.documentElement.dataset.theme; }
+  try { v === "auto" ? localStorage.removeItem("med-theme") : localStorage.setItem("med-theme", v); } catch {}
+  document.querySelectorAll('[data-act="theme"]').forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
+}
+
+function menuHtml() {
+  const rev = unreviewed().length, imp = S.imports.filter((i) => i.open).length;
+  const it = (act, ic, t, extra = "") => `<button class="mi" data-act="${act}"><span class="ic">${ic}</span><span class="mt">${t}</span>${extra}</button>`;
+  const cnt = (n) => `<span class="count${n ? " on" : ""}">${n}</span>`;
+  const theme = currentTheme();
+  return `<div class="mh"><span class="logo">MED</span><div style="min-width:0"><b>MED</b><small>Signed in as ${esc(S.me?.email || "")}</small><small class="upd-ago">${esc(agoText())}</small></div></div>
+  <div class="mg"><h4>Today</h4>${it("tab-home", "🏠", "Home &amp; Coming up")}${it("review", "📝", "Needs review", cnt(rev))}${it("sub-imports", "📥", "Imports to review", cnt(imp))}</div>
+  <div class="mg"><h4>Records</h4>${it("tab-medical", "🩺", "Medical")}${it("tab-dental", "🦷", "Dental")}${it("tab-insurance", "🛡️", "Insurance")}${it("sub-documents", "📎", "Documents", `<span class="count">${S.files.length}</span>`)}${it("sub-ask", "💬", "Ask MED")}</div>
+  <div class="mg"><h4>Changes</h4>${it("undolast", "↩️", "Undo last change")}${it("sub-activity", "🕘", "Activity &amp; undo history")}</div>
+  <div class="mg"><h4>Share &amp; save</h4>${it("print", "🖨️", "Print emergency card")}${it("export", "⬇️", "Download backup")}${it("import", "⬆️", "Import a file")}</div>
+  <div class="mg"><h4>App</h4>${it("refresh", "🔄", "Refresh")}
+    <div class="mi appear"><span class="ic">🌓</span><span class="mt">Appearance</span><span class="seg" role="group" aria-label="Appearance">${["auto", "light", "dark"].map((v) => `<button data-act="theme" data-v="${v}" aria-pressed="${theme === v}">${v[0].toUpperCase() + v.slice(1)}</button>`).join("")}</span></div>
+    ${it("help", "❓", "Help")}</div>
+  <div class="mg"><a class="mi logout" href="${LOGOUT_URL}" data-act="logout"><span class="ic">⎋</span><span class="mt">Log out</span></a></div>`;
+}
+
+const menuEl = $("#menu");
+function openMenu() {
+  if (sheet.open) sheet.close();
+  $("#menuIn").innerHTML = menuHtml();
+  if (!menuEl.open) menuEl.showModal();
+  menuEl.querySelector(".mi")?.focus();
+}
+menuEl.addEventListener("click", (e) => { if (e.target === menuEl) menuEl.close(); });
+
+/* ── More (sub-pages) ── */
 function renderMore() {
   if (S.sub === "documents") return renderDocuments();
   if (S.sub === "activity") return `<p class="empty">Loading…</p>`;
   if (S.sub === "ask") return renderAsk();
-  const m = (act, ic, t, s) => `<button data-act="${act}"><span class="ic">${ic}</span><span>${t}<small>${s}</small></span></button>`;
-  return `<h2 class="page">More</h2>
-  <div class="panel menu">
-    ${m("sub-ask", "💬", "Ask MED", "Questions answered from Aaron's records")}
-    ${m("sub-documents", "📎", "Documents", `${S.files.length} file${S.files.length === 1 ? "" : "s"} · insurance cards, EOBs, X-rays`)}
-    ${m("sub-activity", "🕘", "Activity", "Who added, changed or confirmed what")}
-  </div>
-  <div class="panel menu">
-    ${m("print", "🖨️", "Print emergency card", "One page for a wallet or the fridge")}
-    ${m("export", "⬇️", "Download backup", "All records as a JSON file")}
-    ${m("import", "⬆️", "Import findings", "Add records from a Gmail/Drive findings file")}
-  </div>
+  if (S.sub === "imports") return renderImports();
+  if (S.sub === "import") return renderReport();
+  if (S.sub === "comingup") return renderComingUp();
+  return `<h2 class="page">Menu</h2><div class="panel inline-menu">${menuHtml()}</div>
   <p style="font-size:13px;color:var(--muted);text-align:center">Private to Nanci and Aaron · signed in as ${esc(S.me.email)}</p>`;
 }
 
-const backBtn = `<button class="btn sm" data-act="sub-" style="margin-bottom:10px">‹ More</button>`;
+const backBtn = `<button class="btn sm" data-act="sub-" style="margin-bottom:10px">‹ Menu</button>`;
 
 function renderDocuments() {
   const opts = `<option value="">— none —</option>` + Object.entries(S.schema).map(([k, d]) => `<option value="${k}">${esc(d.label)}</option>`).join("");
@@ -479,11 +798,13 @@ function renderDocuments() {
       <button class="btn sm danger" data-act="delfile" data-id="${f.id}">Delete</button></li>`).join("")}</ul>` : `<div class="empty">No documents yet.</div>`}</div>`;
 }
 
+const VERB = { create: "Added", update: "Changed", confirm: "Confirmed", delete: "Deleted", import: "Imported", upload: "Uploaded", undo: "Undid" };
+const PAST = { create: "added", update: "changed", confirm: "confirmed", delete: "deleted", import: "imported", upload: "uploaded", undo: "the undo of" };
 async function renderActivity() {
   const { entries } = await api("/api/audit");
-  const verb = { create: "Added", update: "Changed", confirm: "Confirmed", delete: "Deleted", import: "Imported", upload: "Uploaded" };
   return `${backBtn}<h2 class="page">Activity</h2>
-  <div class="panel">${entries.length ? `<ul class="log">${entries.map((e) => `<li><b>${esc(verb[e.action] || e.action)}</b> ${esc(e.label)}<div class="w">${esc(S.schema[e.section]?.label || e.section)} · ${esc(e.by)} · ${esc(new Date(e.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}</div></li>`).join("")}</ul>` : `<div class="empty">No activity yet.</div>`}</div>`;
+  <div class="panel">${entries.length ? `<ul class="log">${entries.map((e) => `<li><div class="lrow"><div><b>${esc(VERB[e.action] || e.action)}</b> ${esc(e.label)}<div class="w">${esc(S.schema[e.section]?.label || e.section)} · ${esc(e.by)} · ${esc(dateTime(e.at))}</div></div>
+    <button class="btn sm" data-act="undo" data-key="${esc(e.key)}">Undo</button></div></li>`).join("")}</ul>` : `<div class="empty">No activity yet.</div>`}</div>`;
 }
 
 function renderAsk() {
@@ -492,6 +813,58 @@ function renderAsk() {
   ${S.me.assistant ? "" : `<div class="note">The assistant isn't switched on yet (it needs an Anthropic API key on the Worker). Everything else works.</div>`}
   <div class="panel chat" id="chat">${S.chat.length ? S.chat.map((m) => `<div class="msg ${m.role}"><div class="w">${m.role === "user" ? "You" : "MED"}</div><div class="b">${esc(m.text)}</div></div>`).join("") : `<div style="color:var(--muted);font-size:15px">Answers come only from what's stored in MED. Nothing is searched online and conversations aren't saved.</div><div class="ideas">${ideas.map((q) => `<button data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>`}</div>
   <div class="composer"><textarea id="ask" placeholder="Ask a question…" rows="1"></textarea><button class="btn primary" id="askBtn">Ask</button></div>`;
+}
+
+/* ── Import reports ── */
+function renderImports() {
+  return `<button class="btn sm" data-act="tab-home" style="margin-bottom:10px">‹ Home</button><h2 class="page">Imports</h2>
+  ${S.imports.length ? `<div class="panel list"><ul class="list">${S.imports.map((i) => `<li class="item" data-act="imp" data-id="${i.id}">
+      <div class="txt"><div class="t">${esc(i.title)}</div><div class="s">${esc(dateTime(i.createdAt))} · ${i.settled} of ${i.total} settled</div></div>
+      ${i.open ? `<span class="dot" title="Open"></span>` : ""}<span class="chev">${ICONS.chev}</span></li>`).join("")}</ul></div>` : `<div class="panel empty">No imports yet.</div>`}`;
+}
+
+const REPORT_GROUPS = [["added", "Added"], ["updated", "Updated"], ["conflict", "Conflicts to settle"], ["skipped", "Not imported"], ["upcoming", "Coming up created"]];
+const META_KEYS = new Set(["id", "section", "createdAt", "createdBy", "updatedAt", "updatedBy", "reviewed", "logKey", "source"]);
+const isSettled = (it) => it.group === "skipped" || it.decision !== null;
+
+function changesHtml(it) {
+  const b = it.before || {}, a = it.after || {};
+  const fields = S.schema[it.section]?.fields || [];
+  const keys = [...new Set([...Object.keys(b), ...Object.keys(a)])].filter((k) => !META_KEYS.has(k) && String(b[k] ?? "") !== String(a[k] ?? ""));
+  if (!keys.length) return "";
+  return `<ul class="imp-changes">${keys.map((k) => `<li><span class="sec">${esc(fields.find((f) => f.key === k)?.label || k)}:</span> <s>${esc(b[k] || "(empty)")}</s> → <b>${esc(a[k] || "(empty)")}</b></li>`).join("")}</ul>`;
+}
+
+function impItem(it) {
+  const choice = (it.choices || []).find((c) => c.id === it.decision);
+  const dec = it.group === "skipped" || it.decision === null ? "" : it.decision === "kept" ? "Kept" : it.decision === "undone" ? "Undone" : `Chose: ${choice?.label || it.decision}`;
+  const sec = S.schema[it.section]?.label;
+  let btns = "";
+  if (!isSettled(it)) {
+    btns = it.group === "conflict"
+      ? (it.choices || []).map((c) => `<button class="btn" data-act="imp-act" data-n="${it.n}" data-a="choose" data-c="${esc(c.id)}">${esc(c.label)}</button>`).join("")
+      : `<button class="btn ok" data-act="imp-act" data-n="${it.n}" data-a="keep">Keep</button><button class="btn" data-act="imp-act" data-n="${it.n}" data-a="undo">Undo</button>`;
+  }
+  const view = it.recordId && S.records.some((x) => x.id === it.recordId) ? `<button class="linkbtn" data-act="open" data-id="${it.recordId}">View</button>` : "";
+  return `<div class="imp-item${isSettled(it) ? " settled" : ""}" data-n="${it.n}">
+    <div class="imp-l"><b>${esc(it.label)}</b>${sec ? ` <span class="sec">${esc(sec)}</span>` : ""}${dec ? ` <span class="imp-dec">${esc(dec)}</span>` : ""}</div>
+    ${it.detail ? `<div class="s">${esc(it.detail)}</div>` : ""}${it.reason ? `<div class="s">${esc(it.reason)}</div>` : ""}
+    ${it.group === "updated" ? changesHtml(it) : ""}
+    <div class="imp-btns noprint">${btns}${view}</div></div>`;
+}
+
+function renderReport() {
+  const r = S.report;
+  const back = `<button class="btn sm noprint" data-act="sub-imports" style="margin-bottom:10px">‹ Imports</button>`;
+  if (!r) return `${back}<p class="empty">Loading…</p>`;
+  const src = r.source || {};
+  return `${back}<div class="imp-report">
+    <h2 class="page">${esc(r.title)}</h2>
+    <div class="imp-meta">${esc(dateTime(r.createdAt))} · by ${esc(r.createdBy)} · <b class="imp-count">${r.items.filter(isSettled).length} of ${r.items.length} settled</b></div>
+    <div class="noprint" style="margin:10px 0 16px"><button class="btn sm" data-act="imp-print">🖨️ Print</button></div>
+    <section class="imp-sec"><h3>Source</h3><div class="panel imp-src">${esc(src.name || "—")}${src.fileId ? ` · <a href="/api/files/${esc(src.fileId)}" target="_blank" rel="noopener">Open original</a>` : ""}${src.note ? `<div class="imp-meta">${esc(src.note)}</div>` : ""}</div></section>
+    ${REPORT_GROUPS.map(([g, h]) => { const items = r.items.filter((i) => i.group === g); return `<section class="imp-sec"><h3>${h} <span class="n">${items.length}</span></h3>${items.length ? `<div class="panel">${items.map(impItem).join("")}</div>` : `<div class="panel empty">None.</div>`}</section>`; }).join("")}
+  </div>`;
 }
 
 async function render() {
@@ -508,34 +881,117 @@ async function render() {
 
 /* ── Sheets ── */
 const sheet = $("#sheet");
-function openSheet(head, body, foot) {
+function openSheet(head, body, foot, mode = null, id = null) {
+  if (menuEl.open) menuEl.close();
   $("#sheetIn").innerHTML = `<div class="sheet-h"><div class="grab"></div><div class="row">${head}<button class="x" data-act="close" aria-label="Close">×</button></div></div>
     <div class="sheet-b">${body}</div>${foot ? `<div class="sheet-f">${foot}</div>` : ""}`;
+  S.sheetMode = mode; S.sheetId = id;
   if (!sheet.open) sheet.showModal();
   $("#sheetIn .sheet-b").scrollTop = 0;
 }
 sheet.addEventListener("click", (e) => { if (e.target === sheet) sheet.close(); });
+sheet.addEventListener("close", () => { S.sheetMode = null; S.sheetId = null; });
+// When a dialog closes with the toast inside it, move the toast back to the page.
+for (const d of [sheet, menuEl]) d.addEventListener("close", () => { const t = $("#toast"); if (d.contains(t)) { document.body.appendChild(t); t.classList.remove("top"); } });
 
 const COST_KEYS = ["charged", "allowed", "insurancePaid", "aaronPaid", "balance", "paymentMethod", "billingStatus"];
-function detailBody(r) {
+function costHtml(r) {
   const def = S.schema[r.section];
   const costs = COST_KEYS.filter((k) => r[k] && def.fields.some((f) => f.key === k));
-  const costHtml = costs.length ? `<div class="cost-detail"><div class="cost-h">💵 Costs</div><div class="cost-grid">${costs.map((k) => `<div class="cost-cell ${k === "balance" && money(r[k]) > 0 ? "due" : ""}"><span>${esc(def.fields.find((f) => f.key === k).label)}</span><b>${esc(r[k])}</b></div>`).join("")}</div>${r.breakdown ? `<div class="breakdown">${esc(r.breakdown)}</div>` : ""}</div>` : "";
-  const rows = def.fields.filter((f) => r[f.key] && !COST_KEYS.includes(f.key) && f.key !== "breakdown").map((f) => `<div><dt>${esc(f.label)}</dt><dd>${f.key === "phone" ? `<a href="tel:${esc(r[f.key])}">${esc(r[f.key])}</a>` : esc(f.type === "date" ? fmtDate(r[f.key]) : r[f.key])}</dd></div>`).join("");
-  const files = S.files.filter((f) => f.recordId === r.id);
-  return `${r.reviewed === false ? `<div class="status unrev">Needs review — found automatically, not yet confirmed.</div>` : `<div class="status ok">✓ Confirmed</div>`}
-    ${costHtml}<dl class="fields">${rows}${!costs.length && r.breakdown ? `<div><dt>Itemised breakdown</dt><dd>${esc(r.breakdown)}</dd></div>` : ""}</dl>
-    ${files.length ? `<div class="files" style="margin-top:10px"><b style="font-size:13px;color:var(--muted)">Attached</b>${files.map((f) => `<a href="/api/files/${f.id}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a>`).join("")}</div>` : ""}
-    ${r.source ? `<div class="src">Found in: ${esc(r.source)}</div>` : ""}`;
+  const html = costs.length ? `<div class="cost-detail"><div class="cost-h">💵 Costs</div><div class="cost-grid">${costs.map((k) => `<div class="cost-cell ${k === "balance" && money(r[k]) > 0 ? "due" : ""}"><span>${esc(def.fields.find((f) => f.key === k).label)}</span><b>${esc(r[k])}</b></div>`).join("")}</div>${r.breakdown ? `<div class="breakdown">${esc(r.breakdown)}</div>` : ""}</div>` : "";
+  return { html, has: costs.length > 0 };
 }
+function fieldVal(f, r) {
+  const v = r[f.key];
+  if (f.key === "phone") return `<a href="tel:${esc(v)}">${esc(v)}</a>`;
+  if (f.key === "visitId") {
+    const vis = S.records.find((x) => x.id === v);
+    return vis ? `<button class="linkbtn" data-act="open" data-id="${vis.id}">${esc(recTitle(vis))} · ${esc(fmtDate(vis.date))}</button>` : esc(v);
+  }
+  return esc(f.type === "date" ? fmtDate(v) : v);
+}
+const fieldRows = (r, skip) => S.schema[r.section].fields.filter((f) => r[f.key] && !skip.has(f.key)).map((f) => `<div><dt>${esc(f.label)}</dt><dd>${fieldVal(f, r)}</dd></div>`).join("");
+const statusHtml = (r) => r.reviewed === false ? `<div class="status unrev">Needs review — found automatically, not yet confirmed.</div>` : `<div class="status ok">✓ Confirmed</div>`;
+const filesOf = (r) => S.files.filter((f) => f.recordId === r.id);
+const filesHtml = (r) => { const files = filesOf(r); return files.length ? `<div class="files" style="margin-top:10px"><b style="font-size:13px;color:var(--muted)">Attached</b>${files.map((f) => `<a href="/api/files/${f.id}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a>`).join("")}</div>` : ""; };
+const srcHtml = (r) => r.source ? `<div class="src">Found in: ${esc(r.source)}</div>` : "";
+
+function upcomingTop(r) {
+  const t = targetMs(r.date, r.time);
+  if (t === null) return `<div class="cu-big"><b>To-do</b>${r.date ? `<span>${esc(fmtDate(r.date))}</span>` : ""}</div>`;
+  return `<div class="cu-big"><b>${esc(whenText(r))}</b><span>${esc(countText(t, Date.now()))}</span></div>`;
+}
+
+function detailBody(r) {
+  if (isVisitCard(r)) return visitBody(r);
+  const c = costHtml(r);
+  return `${statusHtml(r)}${r.section === "upcoming" ? upcomingTop(r) : ""}
+    ${c.html}<dl class="fields">${fieldRows(r, new Set([...COST_KEYS, "breakdown"]))}${!c.has && r.breakdown ? `<div><dt>Itemised breakdown</dt><dd>${esc(r.breakdown)}</dd></div>` : ""}</dl>
+    ${filesHtml(r)}${srcHtml(r)}`;
+}
+
+/* ── Visit card ── */
+const VITALS = [["bp", "Blood pressure"], ["weight", "Weight"], ["height", "Height"], ["bmi", "BMI"], ["pulse", "Pulse"], ["temp", "Temperature"], ["spo2", "Oxygen (SpO₂)"]];
+const CLINICAL = ["issues", "tests", "instructions", "followUp"];
+const isVisitCard = (r) => r.section === "visits" && [...VITALS.map((v) => v[0]), ...CLINICAL].some((k) => r[k]);
+const fmtDelta = (d) => d === 0 ? "no change" : (d > 0 ? "↑" : "↓") + String(Math.abs(d));
+const sigWords = (s) => (String(s).toLowerCase().match(/[a-z]+/g) || []).filter((w) => w.length >= 5);
+function matchCondition(issue) {
+  const words = new Set(sigWords(issue));
+  return words.size ? bySection("conditions").find((c) => sigWords(c.name).some((w) => words.has(w))) : null;
+}
+
+function visitBody(r) {
+  const fl = flags(r);
+  const visits = bySection("visits");
+  const tiles = VITALS.filter(([k]) => r[k]).map(([k, lbl]) => {
+    const d = delta(visits, r, k);
+    return `<div class="vital${fl.has(k) ? " flag" : ""}" data-k="${k}"><span class="vl">${lbl}</span><b>${esc(r[k])}</b>${d !== null ? `<span class="delta">${fmtDelta(d)}</span>` : ""}${fl.has(k) ? `<span class="vflag">${k === "spo2" ? "Low" : "High"}</span>` : ""}</div>`;
+  }).join("");
+  const issues = lines(r.issues).map((i) => {
+    const c = matchCondition(i);
+    return c ? `<button class="ichip" data-act="open" data-id="${c.id}">${esc(i)} ›</button>` : `<span class="ichip">${esc(i)} <em>New</em></span>`;
+  }).join("");
+  const tests = lines(r.tests);
+  const linked = bySection("upcoming").filter((u) => u.visitId === r.id);
+  const c = costHtml(r);
+  const used = new Set(["date", "provider", "reason", ...VITALS.map((v) => v[0]), ...CLINICAL, ...COST_KEYS, "breakdown"]);
+  const rest = fieldRows(r, used);
+  const files = filesOf(r);
+  return `${statusHtml(r)}
+    <div class="vc-head">
+      <div>${esc(fmtDate(r.date))}${r.provider ? ` · ${esc(r.provider)}` : ""}</div>
+      ${files.length ? `<div>${files.map((f) => `<a href="/api/files/${f.id}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a>`).join("")}</div>` : ""}</div>
+    ${tiles ? `<div class="vc-h">Vitals</div><div class="vitals">${tiles}</div><div class="vc-note">Arrows show the change since the last visit with that reading. Red means outside the usual range.</div>` : ""}
+    ${issues ? `<div class="vc-h">Issues addressed</div><div class="ichips">${issues}</div>` : ""}
+    ${tests.length ? `<div class="vc-h">Tests done</div><ul class="checklist">${tests.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
+    ${r.instructions || r.followUp || linked.length ? `<div class="vc-h">Instructions</div>
+      ${r.instructions ? `<div class="instr">${esc(r.instructions)}</div>` : ""}
+      ${r.followUp ? `<div style="margin-top:8px">Follow-up: <b>${esc(fmtDate(r.followUp))}</b></div>` : ""}
+      ${linked.map((u) => `<button class="linkbtn" data-act="open" data-id="${u.id}">📅 ${esc(u.title)}${u.date ? " · " + esc(whenText(u)) : ""}</button>`).join("<br>")}` : ""}
+    ${c.html ? `<div class="vc-h">Costs</div>${c.html}` : ""}
+    ${rest ? `<div class="vc-h">More</div><dl class="fields">${rest}</dl>` : ""}
+    ${!c.has && r.breakdown ? `<dl class="fields"><div><dt>Itemised breakdown</dt><dd>${esc(r.breakdown)}</dd></div></dl>` : ""}
+    ${srcHtml(r)}`;
+}
+
 const headHtml = (r, pre = "") => `<div style="flex:1;min-width:0">${pre}<h3>${esc(recTitle(r))}</h3><div class="sec">${esc(S.schema[r.section].label)}${recDate(r) ? " · " + esc(fmtDate(recDate(r))) : ""}</div></div>`;
 
 function openDetail(r) {
+  const confirmBtn = r.reviewed === false ? `<button class="btn ok" data-act="confirm" data-id="${r.id}">✓ Confirm</button>` : "";
+  if (r.section === "upcoming") {
+    const open = r.status !== "done" && r.status !== "cancelled";
+    return openSheet(headHtml(r), detailBody(r),
+      `${confirmBtn}${open ? `<button class="btn ok" data-act="cu-done" data-id="${r.id}">✓ Mark done</button>` : ""}
+       <button class="btn" data-act="edit" data-id="${r.id}">Edit</button>
+       ${r.phone ? `<a class="btn" href="tel:${esc(r.phone)}">📞 Call</a>` : ""}
+       <button class="btn danger" data-act="del" data-id="${r.id}">Delete</button>`, "detail", r.id);
+  }
   openSheet(headHtml(r), detailBody(r),
-    `${r.reviewed === false ? `<button class="btn ok" data-act="confirm" data-id="${r.id}">✓ Confirm</button>` : ""}
+    `${confirmBtn}
      <button class="btn" data-act="edit" data-id="${r.id}">Edit</button>
      <button class="btn" data-act="attach" data-id="${r.id}">Attach</button>
-     <button class="btn danger" data-act="del" data-id="${r.id}">Delete</button>`);
+     <button class="btn danger" data-act="del" data-id="${r.id}">Delete</button>`, "detail", r.id);
 }
 
 // Review mode: one unreviewed record at a time, newest first.
@@ -545,7 +1001,7 @@ function openReview() {
   const total = S.records.length, done = total - unreviewed().length;
   if (!queue.length) {
     reviewSkipped = new Set();
-    openSheet(`<div style="flex:1"><h3>Review</h3></div>`, `<div class="empty" style="font-size:17px">${unreviewed().length ? "You've gone through every record — the skipped ones are still waiting." : "🎉 Everything is confirmed."}</div>`, `<button class="btn primary" data-act="close">Done</button>`);
+    openSheet(`<div style="flex:1"><h3>Review</h3></div>`, `<div class="empty" style="font-size:17px">${unreviewed().length ? "You've gone through every record — the skipped ones are still waiting." : "🎉 Everything is confirmed."}</div>`, `<button class="btn primary" data-act="close">Done</button>`, "review");
     return render();
   }
   const r = queue[0];
@@ -554,7 +1010,7 @@ function openReview() {
     `<button class="btn ok" data-act="confirm" data-id="${r.id}" data-next="1">✓ Confirm</button>
      <button class="btn" data-act="edit" data-id="${r.id}" data-next="1">Edit</button>
      <button class="btn" data-act="skip" data-id="${r.id}">Skip</button>
-     <button class="btn danger" data-act="del" data-id="${r.id}" data-next="1">Delete</button>`);
+     <button class="btn danger" data-act="del" data-id="${r.id}" data-next="1">Delete</button>`, "review", r.id);
 }
 
 function openForm(section, rec, defaults = {}, next = false) {
@@ -565,23 +1021,25 @@ function openForm(section, rec, defaults = {}, next = false) {
     if (f.type === "enum") return `<select name="${f.key}">${f.required ? "" : `<option value=""></option>`}${f.options.map((o) => `<option ${v[f.key] === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
     if (f.type === "long") return `<textarea name="${f.key}">${val}</textarea>`;
     if (f.type === "date") return `<input name="${f.key}" value="${val}" placeholder="YYYY-MM-DD (or YYYY / YYYY-MM)" inputmode="numeric" />`;
-    return `<input name="${f.key}" value="${val}" ${f.key === "phone" ? 'inputmode="tel"' : ""} />`;
+    return `<input name="${f.key}" value="${val}" ${f.key === "phone" ? 'inputmode="tel"' : ""} ${f.key === "time" ? 'placeholder="e.g. 3:15 PM (empty = all day)"' : ""} />`;
   };
   openSheet(`<div style="flex:1"><h3>${rec ? "Edit" : "Add"}</h3><div class="sec">${esc(def.label)}</div></div>`,
     `<form id="recForm">${def.fields.map((f) => `<label class="fld"><span>${esc(f.label)}${f.required ? " *" : ""}</span>${input(f)}</label>`).join("")}<div class="err" id="formErr"></div></form>`,
-    `<button class="btn" data-act="${rec ? "open" : "close"}" data-id="${rec ? rec.id : ""}">Cancel</button><button class="btn primary" id="saveBtn">Save</button>`);
+    `<button class="btn" data-act="${rec ? "open" : "close"}" data-id="${rec ? rec.id : ""}">Cancel</button><button class="btn primary" id="saveBtn">Save</button>`, "form", rec?.id || null);
   $("#saveBtn").onclick = async () => {
     const data = Object.fromEntries(new FormData($("#recForm")));
     try {
       if (rec) {
-        const u = await api(`/api/records/${section}/${rec.id}`, { method: "PUT", body: JSON.stringify(data) });
+        const res = await api(`/api/records/${section}/${rec.id}`, { method: "PUT", body: JSON.stringify(data) });
+        const u = clean(res);
         S.records = S.records.map((r) => (r.id === u.id ? u : r));
-        toast("Saved");
         render();
-        return next ? openReview() : openDetail(u);
+        next ? openReview() : openDetail(u);
+        return toast("Saved", false, res.logKey);
       }
-      S.records.push(await api("/api/records", { method: "POST", body: JSON.stringify({ section, ...data }) }));
-      sheet.close(); toast("Added"); render();
+      const res = await api("/api/records", { method: "POST", body: JSON.stringify({ section, ...data }) });
+      S.records.push(clean(res));
+      sheet.close(); render(); toast("Added", false, res.logKey);
     } catch (e) { $("#formErr").textContent = e.message; }
   };
 }
@@ -590,47 +1048,139 @@ async function upload(file, section = "", recordId = "") {
   if (!file) return;
   if (file.size > 10 * 1024 * 1024) return toast("Files must be 10 MB or smaller.", true);
   const fd = new FormData(); fd.append("file", file); fd.append("section", section); fd.append("recordId", recordId);
-  try { S.files.unshift(await api("/api/files", { method: "POST", body: fd })); toast(`Uploaded ${file.name}`); render(); const r = S.records.find((x) => x.id === recordId); if (r && sheet.open) openDetail(r); }
-  catch (e) { toast(e.message, true); }
+  try {
+    const res = await api("/api/files", { method: "POST", body: fd });
+    S.files.unshift(clean(res)); render();
+    const r = S.records.find((x) => x.id === recordId); if (r && sheet.open) openDetail(r);
+    toast(`Uploaded ${file.name}`, false, res.logKey);
+  } catch (e) { toast(e.message, true); }
+}
+
+function openHelp() {
+  openSheet(`<div style="flex:1"><h3>Help</h3><div class="sec">How MED works</div></div>`, `<ul class="help">
+    <li><b>Coming up</b> is first on Home. Purple glow: more than a week away. Silver: this week. Pulsing: within 24 hours.</li>
+    <li>Tap any card or record to see it. The buttons at the bottom confirm, edit, mark done or call.</li>
+    <li>An orange dot means MED found it automatically and it needs checking. <b>Needs review</b> in the menu walks you through them.</li>
+    <li>After every change an <b>Undo</b> button shows for a few seconds. Missed it? Use <b>Undo last change</b>, or <b>Activity</b> for older changes.</li>
+    <li>Tap a section's name (Conditions, Visits…) to open or close it. <b>Expand all</b> opens them all.</li>
+    <li><b>Imports to review</b> lists what came in from a document. Keep or undo each item, and pick an option for anything that disagrees.</li>
+    <li><b>Refresh</b> picks up changes the other person made. <b>Log out</b> signs you out fully.</li>
+  </ul>`, `<button class="btn primary" data-act="close">Got it</button>`, "help");
+}
+
+/* ── Undo & refresh ── */
+async function doUndo(key) {
+  try { await api("/api/undo", { method: "POST", body: JSON.stringify({ key }) }); }
+  catch (e) { return toast(e.message, true); }
+  await fetchData();
+  if (S.sub === "import" && S.report) S.report = await api(`/api/imports/${S.report.id}`).catch(() => S.report);
+  await render();
+  if (sheet.open) {
+    const r = S.records.find((x) => x.id === S.sheetId);
+    if (S.sheetMode === "review") openReview();
+    else if (S.sheetMode === "detail") r ? openDetail(r) : sheet.close();
+  }
+  toast("Undone");
+}
+
+async function undoLast() {
+  const { entries } = await api("/api/audit");
+  const e = entries[0];
+  if (!e) return toast("Nothing to undo yet.");
+  if (confirm(`Undo: ${PAST[e.action] || e.action} "${e.label}"?`)) await doUndo(e.key);
+}
+
+async function refresh() {
+  try {
+    await fetchData();
+    await render();
+    const { version } = await api("/api/version");
+    if (S.version && version && version !== S.version) return location.reload();
+    toast("Up to date");
+  } catch { toast("Couldn't refresh — check your connection", true); }
+}
+
+function goTab(id) {
+  S.tab = id; S.sub = null; S.q = ""; S.onlyReview = false;
+  try { localStorage.setItem("med-tab", S.tab); } catch {}
+  window.scrollTo(0, 0); return render();
 }
 
 /* ── Events ── */
 document.addEventListener("click", async (ev) => {
   const t = ev.target.closest("[data-tab],[data-act],[data-q],#askBtn");
   if (!t) return;
-  if (t.dataset.tab) {
-    S.tab = t.dataset.tab; S.sub = null; S.q = ""; S.onlyReview = false;
-    try { localStorage.setItem("med-tab", S.tab); } catch {}
-    window.scrollTo(0, 0); return render();
-  }
+  if (t.tagName === "A" && t.dataset.act) ev.preventDefault();
+  const { act, id } = t.dataset;
+  if (menuEl.open && menuEl.contains(t) && act !== "theme") menuEl.close();
+  if (t.dataset.tab) return goTab(t.dataset.tab);
   if (t.dataset.q) { $("#ask").value = t.dataset.q; return sendAsk(); }
   if (t.id === "askBtn") return sendAsk();
-  const { act, id } = t.dataset;
   const rec = S.records.find((r) => r.id === id);
   try {
     if (act === "close") sheet.close();
+    if (act === "menu") return openMenu();
+    if (act === "logout") { if (confirm("Log out of MED?")) location.href = LOGOUT_URL; return; }
+    if (act === "theme") return setTheme(t.dataset.v);
+    if (act === "help") return openHelp();
+    if (act === "refresh") return refresh();
+    if (act === "undo") { t.closest(".toast")?.classList.add("hidden"); return doUndo(t.dataset.key); }
+    if (act === "undolast") return undoLast();
+    if (act && act.startsWith("tab-")) return goTab(act.slice(4));
+    if (act === "gtoggle") { const g = t.closest(".group"); setGroup(g, !g.classList.contains("open")); return saveGroups(); }
+    if (act === "gall") { document.querySelectorAll("main .group[data-g]").forEach((g) => setGroup(g, t.dataset.v === "1")); return saveGroups(); }
     if (act === "open" && rec) openDetail(rec);
     if (act === "review") { reviewSkipped = new Set(); openReview(); }
     if (act === "skip") { reviewSkipped.add(id); openReview(); }
     if (act === "add") openForm(t.dataset.s, null, JSON.parse(t.dataset.def || "{}"));
     if (act === "edit" && rec) openForm(rec.section, rec, {}, !!t.dataset.next);
     if (act === "confirm" && rec) {
-      const u = await api(`/api/records/${rec.section}/${id}`, { method: "PUT", body: JSON.stringify({ reviewed: true }) });
+      const res = await api(`/api/records/${rec.section}/${id}`, { method: "PUT", body: JSON.stringify({ reviewed: true }) });
+      const u = clean(res);
       S.records = S.records.map((r) => (r.id === id ? u : r));
-      toast("Confirmed ✓"); render();
+      render();
       t.dataset.next ? openReview() : openDetail(u);
+      toast("Confirmed ✓", false, res.logKey);
     }
-    if (act === "del" && rec && confirm(`Delete "${recTitle(rec)}"? This can't be undone.`)) {
-      await api(`/api/records/${rec.section}/${id}`, { method: "DELETE" });
+    if (act === "cu-done" && rec) {
+      const res = await api(`/api/records/${rec.section}/${id}`, { method: "PUT", body: JSON.stringify({ status: "done" }) });
+      S.records = S.records.map((r) => (r.id === id ? clean(res) : r));
+      if (sheet.open) sheet.close();
+      render(); toast(`Done: ${recTitle(rec)}`, false, res.logKey);
+    }
+    if (act === "del" && rec && confirm(`Delete "${recTitle(rec)}"?`)) {
+      const res = await api(`/api/records/${rec.section}/${id}`, { method: "DELETE" });
       S.records = S.records.filter((r) => r.id !== id);
-      toast("Deleted"); render();
+      render();
       t.dataset.next ? openReview() : sheet.close();
+      toast("Deleted", false, res.logKey);
     }
     if (act === "attach" && rec) { const inp = document.createElement("input"); inp.type = "file"; inp.onchange = () => upload(inp.files[0], rec.section, id); inp.click(); }
-    if (act === "delfile" && confirm("Delete this document?")) { await api(`/api/files/${id}`, { method: "DELETE" }); S.files = S.files.filter((f) => f.id !== id); render(); }
+    if (act === "delfile" && confirm("Delete this document?")) {
+      const res = await api(`/api/files/${id}`, { method: "DELETE" });
+      S.files = S.files.filter((f) => f.id !== id); render(); toast("Document deleted", false, res.logKey);
+    }
     if (act === "expand") { S.expanded[t.dataset.k] = true; render(); }
     if (act === "filter") { S.onlyReview = t.dataset.v === "review"; render(); }
-    if (act && act.startsWith("sub-")) { S.sub = act.slice(4) || null; window.scrollTo(0, 0); render(); }
+    if (act && act.startsWith("sub-")) { S.tab = "more"; S.sub = act.slice(4) || null; window.scrollTo(0, 0); render(); }
+    if (act === "imp") {
+      S.tab = "more"; S.sub = "import"; S.report = null; window.scrollTo(0, 0); render();
+      S.report = await api(`/api/imports/${id}`); render();
+    }
+    if (act === "imp-act" && S.report) {
+      const { n, a, c } = t.dataset;
+      const before = S.report.items.find((i) => String(i.n) === n);
+      t.disabled = true;
+      S.report = await api(`/api/imports/${S.report.id}/items/${n}`, { method: "POST", body: JSON.stringify({ action: a, choice: c }) });
+      await fetchData();
+      const after = S.report.items.find((i) => String(i.n) === n);
+      let key = null;
+      if (a === "choose") key = after?.patchLogKey || null;
+      if (a === "undo") { const { entries } = await api("/api/audit"); key = entries.find((e) => e.undoes === before?.logKey)?.key || null; }
+      await render();
+      toast(a === "keep" ? "Kept" : a === "undo" ? "Undone" : "Choice applied", false, key);
+    }
+    if (act === "imp-print") { document.body.classList.add("print-report"); setTimeout(() => window.print(), 50); }
     if (act === "print") { if (S.tab !== "home") { S.tab = "home"; await render(); } document.querySelector("details.ecard").open = true; setTimeout(() => window.print(), 50); }
     if (act === "import") $("#importFile").click();
     if (act === "export") {
@@ -640,8 +1190,9 @@ document.addEventListener("click", async (ev) => {
       a.download = `med-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     }
-  } catch (e) { toast(e.message, true); }
+  } catch (e) { toast(e.message, true); if (act === "imp-act") render(); }
 });
+window.addEventListener("afterprint", () => document.body.classList.remove("print-report"));
 
 let searchTimer;
 document.addEventListener("input", (ev) => {
@@ -664,7 +1215,7 @@ $("#importFile").addEventListener("change", async (ev) => {
   try {
     const findings = JSON.parse(await file.text());
     const out = await api("/api/import", { method: "POST", body: JSON.stringify(findings) });
-    await load();
+    await fetchData(); render();
     toast(`Imported ${out.added} for review · skipped ${out.skipped.duplicate} already on file`);
   } catch (e) { toast(e.message.includes("JSON") ? "That file isn't valid findings JSON." : e.message, true); }
 });
