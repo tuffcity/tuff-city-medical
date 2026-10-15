@@ -67,6 +67,12 @@ async function newPage(width) {
   page.on("pageerror", (e) => errors.push(`${width}px: ${e.message}`));
   page.on("dialog", (d) => { dialogs.push(d.message()); d.accept(); });
   await page.clock.setFixedTime(T1);
+  await page.route("**/api/audit", async (route) => {
+    const res = await route.fetch();
+    const body = await res.json();
+    body.entries.push({ key: "log:9999999999999:legacy:00000000", action: "create", label: "Old legacy entry", section: "conditions", by: "nanci@tuffcity.com", at: Date.parse("2026-01-01") });
+    await route.fulfill({ response: res, json: body });
+  });
   await page.goto(BASE + "/");
   await page.waitForSelector("h2.page");
   return page;
@@ -161,6 +167,16 @@ try {
   check("'Prostate cancer' chip links to the condition", !(((await page.locator("#sheet .ichip", { hasText: "Prostate cancer" }).textContent().catch(() => "")) || "New").includes("New"))
     && (await page.locator('#sheet button.ichip[data-act="open"]', { hasText: "Prostate cancer" }).count()) === 1);
   check("tests as checklist", (await page.locator("#sheet .checklist li").count()) === 3);
+  check("follow-up date links to its Coming up item", await (async () => {
+    const b = page.locator("#sheet .fu-link");
+    if ((await b.count()) !== 1 || !((await b.textContent()) || "").includes("Feb 20, 2027")) return false;
+    await b.click();
+    const h = (await page.locator("#sheet h3").textContent().catch(() => "")) || "";
+    await page.keyboard.press("Escape");
+    await page.locator(".item", { hasText: "Annual exam" }).click();
+    await page.waitForSelector("#sheet .vital");
+    return h.includes("Schedule 6-month follow-up");
+  })());
   check("instructions link to Coming up item", (await page.locator("#sheet [data-act=open]", { hasText: "Schedule 6-month follow-up" }).count()) === 1);
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/ui-visit.png` });
   await page.locator('#sheet button.ichip[data-act="open"]').click().catch(() => {});
@@ -208,12 +224,15 @@ try {
   await page.waitForSelector(".log li", { timeout: 3000 }).catch(() => {});
   check("menu item tap closes the drawer", !(await menu.isVisible().catch(() => false)));
   check("Activity entries have Undo", (await page.locator('.log li [data-act="undo"]').count()) > 0);
+  check("legacy Activity entry has no Undo", (await page.locator(".log li", { hasText: "Old legacy entry" }).count()) === 1
+    && (await page.locator(".log li", { hasText: "Old legacy entry" }).locator('[data-act="undo"]').count()) === 0);
   // Undo last change (the latest entry is the undo of the confirm → redo it).
   dialogs.length = 0;
   await page.locator(".burger").click();
   await page.locator('#menu [data-act="undolast"]').click().catch(() => {});
   await page.waitForTimeout(500);
-  check("Undo last change asks, naming the entry", /^Undo: .+ "Trazodone"\?$/.test(dialogs[0] || ""), dialogs[0]);
+  check("Undo last change of an undo offers Redo with the original verb", dialogs[0] === 'Redo: confirmed "Trazodone"?', dialogs[0]);
+  check("never shows 'the undo of'", !dialogs.some((m) => m.includes("the undo of")));
   await page.locator(".burger").click();
   await page.locator('#menu [data-act="refresh"]').click().catch(() => {});
   await page.waitForTimeout(400);

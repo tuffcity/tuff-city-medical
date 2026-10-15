@@ -582,6 +582,7 @@ function tick() {
     const c = el.querySelector(".cu-count");
     if (c) c.textContent = countText(t, now);
   });
+  document.querySelectorAll("#sheet .cu-big[data-t] .cu-count").forEach((c) => { c.textContent = countText(Number(c.parentNode.dataset.t), now); });
   if (gone && S.tab === "home" && !sheet.open && !menuEl.open) render();
 }
 
@@ -799,12 +800,12 @@ function renderDocuments() {
 }
 
 const VERB = { create: "Added", update: "Changed", confirm: "Confirmed", delete: "Deleted", import: "Imported", upload: "Uploaded", undo: "Undid" };
-const PAST = { create: "added", update: "changed", confirm: "confirmed", delete: "deleted", import: "imported", upload: "uploaded", undo: "the undo of" };
+const PAST = { create: "added", update: "changed", confirm: "confirmed", delete: "deleted", import: "imported", upload: "uploaded" };
 async function renderActivity() {
   const { entries } = await api("/api/audit");
   return `${backBtn}<h2 class="page">Activity</h2>
   <div class="panel">${entries.length ? `<ul class="log">${entries.map((e) => `<li><div class="lrow"><div><b>${esc(VERB[e.action] || e.action)}</b> ${esc(e.label)}<div class="w">${esc(S.schema[e.section]?.label || e.section)} · ${esc(e.by)} · ${esc(dateTime(e.at))}</div></div>
-    <button class="btn sm" data-act="undo" data-key="${esc(e.key)}">Undo</button></div></li>`).join("")}</ul>` : `<div class="empty">No activity yet.</div>`}</div>`;
+    ${"before" in e && "after" in e ? `<button class="btn sm" data-act="undo" data-key="${esc(e.key)}">Undo</button>` : ""}</div></li>`).join("")}</ul>` : `<div class="empty">No activity yet.</div>`}</div>`;
 }
 
 function renderAsk() {
@@ -919,7 +920,7 @@ const srcHtml = (r) => r.source ? `<div class="src">Found in: ${esc(r.source)}</
 function upcomingTop(r) {
   const t = targetMs(r.date, r.time);
   if (t === null) return `<div class="cu-big"><b>To-do</b>${r.date ? `<span>${esc(fmtDate(r.date))}</span>` : ""}</div>`;
-  return `<div class="cu-big"><b>${esc(whenText(r))}</b><span>${esc(countText(t, Date.now()))}</span></div>`;
+  return `<div class="cu-big" data-t="${t}"><b>${esc(whenText(r))}</b><span class="cu-count">${esc(countText(t, Date.now()))}</span></div>`;
 }
 
 function detailBody(r) {
@@ -954,6 +955,7 @@ function visitBody(r) {
   }).join("");
   const tests = lines(r.tests);
   const linked = bySection("upcoming").filter((u) => u.visitId === r.id);
+  const fuItem = r.followUp ? (linked[0] || bySection("upcoming").find((u) => u.date === r.followUp)) : null;
   const c = costHtml(r);
   const used = new Set(["date", "provider", "reason", ...VITALS.map((v) => v[0]), ...CLINICAL, ...COST_KEYS, "breakdown"]);
   const rest = fieldRows(r, used);
@@ -967,7 +969,7 @@ function visitBody(r) {
     ${tests.length ? `<div class="vc-h">Tests done</div><ul class="checklist">${tests.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
     ${r.instructions || r.followUp || linked.length ? `<div class="vc-h">Instructions</div>
       ${r.instructions ? `<div class="instr">${esc(r.instructions)}</div>` : ""}
-      ${r.followUp ? `<div style="margin-top:8px">Follow-up: <b>${esc(fmtDate(r.followUp))}</b></div>` : ""}
+      ${r.followUp ? `<div style="margin-top:8px">Follow-up: ${fuItem ? `<button class="linkbtn fu-link" data-act="open" data-id="${fuItem.id}">${esc(fmtDate(r.followUp))}</button>` : `<b>${esc(fmtDate(r.followUp))}</b>`}</div>` : ""}
       ${linked.map((u) => `<button class="linkbtn" data-act="open" data-id="${u.id}">📅 ${esc(u.title)}${u.date ? " · " + esc(whenText(u)) : ""}</button>`).join("<br>")}` : ""}
     ${c.html ? `<div class="vc-h">Costs</div>${c.html}` : ""}
     ${rest ? `<div class="vc-h">More</div><dl class="fields">${rest}</dl>` : ""}
@@ -1087,7 +1089,10 @@ async function undoLast() {
   const { entries } = await api("/api/audit");
   const e = entries[0];
   if (!e) return toast("Nothing to undo yet.");
-  if (confirm(`Undo: ${PAST[e.action] || e.action} "${e.label}"?`)) await doUndo(e.key);
+  // Undoing an undo reapplies the original change, so name that change.
+  const orig = e.action === "undo" ? entries.find((x) => x.key === e.undoes) : null;
+  const msg = e.action === "undo" ? `Redo: ${PAST[orig?.action] || "changed"} "${e.label}"?` : `Undo: ${PAST[e.action] || "changed"} "${e.label}"?`;
+  if (confirm(msg)) await doUndo(e.key);
 }
 
 async function refresh() {
