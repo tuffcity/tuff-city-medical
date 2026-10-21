@@ -11,6 +11,7 @@ import { SECTIONS, cleanRecord } from "./src/schema.js";
 import { createStore, MAX_FILE_BYTES } from "./src/store.js";
 import { planImport } from "./src/importer.js";
 import { ask } from "./src/assistant.js";
+import { applyImport, getImport, listImports, settleItem } from "./src/imports.js";
 
 const SECURITY_HEADERS = {
   "cache-control": "no-store",
@@ -46,6 +47,41 @@ async function route(req, env, me) {
 
   if (p === "/api/me") return json({ email: me, assistant: !!env.ANTHROPIC_API_KEY });
   if (p === "/api/schema") return json(SECTIONS);
+  if (p === "/api/version") return json({ version: env.MED_VERSION || "dev" });
+
+  if (p === "/api/undo" && req.method === "POST") {
+    const body = await readJson(req, 10_000);
+    const key = typeof body?.key === "string" ? body.key : "";
+    if (!key) return json({ error: "Nothing to undo." }, 400);
+    const res = await store.undo(key, me);
+    return res.ok ? json({ entry: res.entry }) : json({ error: res.error }, 409);
+  }
+
+  if (p === "/api/imports" && req.method === "GET") return json({ imports: await listImports(env.RECORDS) });
+
+  if (p === "/api/imports" && req.method === "POST") {
+    const body = await readJson(req, 5_000_000);
+    const report = await applyImport(store, env.RECORDS, {
+      title: String(body?.title ?? ""), source: body?.source ?? null, ops: Array.isArray(body?.ops) ? body.ops : [],
+    }, me);
+    return json(report, 201);
+  }
+
+  const im = p.match(/^\/api\/imports\/([0-9a-f-]{36})$/);
+  if (im && req.method === "GET") {
+    const report = await getImport(env.RECORDS, im[1]);
+    return report ? json(report) : json({ error: "Not found." }, 404);
+  }
+
+  const is = p.match(/^\/api\/imports\/([0-9a-f-]{36})\/items\/([1-9][0-9]*)$/);
+  if (is && req.method === "POST") {
+    const body = await readJson(req, 10_000);
+    try {
+      return json(await settleItem(store, env.RECORDS, is[1], Number(is[2]), { action: body?.action, choice: body?.choice }, me));
+    } catch (e) {
+      return json({ error: e.message }, e.message === "Not found." ? 404 : 409);
+    }
+  }
 
   if (p === "/api/records" && req.method === "GET") return json({ records: await store.listRecords() });
 
@@ -55,7 +91,8 @@ async function route(req, env, me) {
     if (why) return refuse(why);
     const { value, error } = cleanRecord(body.section, body);
     if (error) return json({ error }, 400);
-    return json(await store.createRecord(body.section, value, me), 201);
+    const created = await store.createRecord(body.section, value, me);
+    return json({ ...created, logKey: store.lastLogKey }, 201);
   }
 
   const rm = p.match(/^\/api\/records\/([a-z]+)\/([0-9a-f-]{36})$/);
@@ -69,10 +106,10 @@ async function route(req, env, me) {
       const { value, error } = cleanRecord(section, body, { partial: true });
       if (error) return json({ error }, 400);
       const rec = await store.updateRecord(section, id, value, me);
-      return rec ? json(rec) : json({ error: "Not found." }, 404);
+      return rec ? json({ ...rec, logKey: store.lastLogKey }) : json({ error: "Not found." }, 404);
     }
     if (req.method === "DELETE") {
-      return (await store.deleteRecord(section, id, me)) ? json({ ok: true }) : json({ error: "Not found." }, 404);
+      return (await store.deleteRecord(section, id, me)) ? json({ ok: true, logKey: store.lastLogKey }) : json({ error: "Not found." }, 404);
     }
     return json({ error: "Method not allowed." }, 405);
   }
@@ -91,7 +128,7 @@ async function route(req, env, me) {
       name: file.name, type: file.type, bytes: await file.arrayBuffer(),
       section: SECTIONS[form.get("section")] ? form.get("section") : "", recordId: String(form.get("recordId") || ""),
     }, me);
-    return json(meta, 201);
+    return json({ ...meta, logKey: store.lastLogKey }, 201);
   }
 
   const fm = p.match(/^\/api\/files\/([0-9a-f-]{36})$/);
@@ -106,7 +143,7 @@ async function route(req, env, me) {
         "content-security-policy": "sandbox",
       } });
     }
-    if (req.method === "DELETE") return (await store.deleteFile(fm[1], me)) ? json({ ok: true }) : json({ error: "Not found." }, 404);
+    if (req.method === "DELETE") return (await store.deleteFile(fm[1], me)) ? json({ ok: true, logKey: store.lastLogKey }) : json({ error: "Not found." }, 404);
     return json({ error: "Method not allowed." }, 405);
   }
 

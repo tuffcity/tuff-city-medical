@@ -21,6 +21,12 @@ binding = "RECORDS"
 # tuff-city-medical-RECORDS (created 2026-10-06)
 id = "ad60b36992244b3ca5371cc0650241da"
 
+# Browser ES modules (public/lib/*.mjs) are bundled as text too, so entry.js can serve their source.
+[[rules]]
+type = "Text"
+globs = ["**/public/lib/*.mjs"]
+fallthrough = true
+
 # Page files are bundled into the script (see src/entry.js) — no Workers Assets upload.
 [[rules]]
 type = "Text"

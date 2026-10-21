@@ -23,6 +23,10 @@ export const SECTIONS = {
   visits: { label: "Visits", title: "reason", date: "date", fields: [
     f("date", "Date", { type: "date", required: true }), f("kind", "Kind", { type: "enum", options: CARE }),
     f("provider", "Provider"), f("reason", "Reason"), f("procedures", "What was done", { type: "long" }),
+    f("bp", "Blood pressure"), f("weight", "Weight"), f("height", "Height"), f("bmi", "BMI"),
+    f("pulse", "Pulse"), f("temp", "Temperature"), f("spo2", "Oxygen saturation"),
+    f("issues", "Issues addressed", { type: "long" }), f("tests", "Tests done", { type: "long" }),
+    f("instructions", "Doctor's instructions", { type: "long" }), f("followUp", "Follow-up date", { type: "date" }),
     ...COST(true), f("notes", "Notes", { type: "long" }) ] },
   procedures: { label: "Procedures", title: "name", date: "date", fields: [
     f("name", "Procedure", { required: true }), f("date", "Date", { type: "date" }),
@@ -53,6 +57,13 @@ export const SECTIONS = {
     f("amount", "Amount"), f("status", "Status"), f("notes", "Notes", { type: "long" }) ] },
   contacts: { label: "Emergency contacts", title: "name", fields: [
     f("name", "Name", { required: true }), f("relation", "Relation"), f("phone", "Phone"), f("email", "Email") ] },
+  upcoming: { label: "Coming up", title: "title", date: "date", fields: [
+    f("type", "Type", { type: "enum", required: true, options: ["appointment", "deadline", "to-do"] }), f("title", "Title", { required: true }),
+    f("date", "Date", { type: "date" }), f("time", "Time"), f("provider", "Provider"), f("location", "Location"),
+    f("phone", "Phone"), f("kind", "Kind", { type: "enum", options: ["medical", "dental", "vision", "hearing", "insurance", "pharmacy"] }),
+    f("details", "Details", { type: "long" }), f("actionNeeded", "Action needed", { type: "long" }),
+    f("status", "Status", { type: "enum", options: ["unconfirmed", "confirmed", "needs action", "done", "cancelled"] }),
+    f("visitId", "Linked visit") ] },
 };
 
 const DATE_RE = /^\d{4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?)?$/;
@@ -73,6 +84,8 @@ export function earliestDate(text, pick = "earliest") {
   if (valid.length === 1 && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) return valid[0];
   return v;
 }
+// upcoming.time: 12-hour with AM/PM, or 24-hour only where it can't be read as AM (00, 13-23).
+const TIME_RE = /^(?:(?:0?[1-9]|1[0-2])(?::[0-5]\d)?\s*[ap]m|(?:00|1[3-9]|2[0-3]):[0-5]\d)$/i;
 const CAP = { text: 500, long: 4000, date: 10, enum: 40 };
 
 // → { value } or { error }. `partial` = update: only fields present are checked.
@@ -91,9 +104,13 @@ export function cleanRecord(section, input, { partial = false } = {}) {
     if (fd.type === "date") v = earliestDate(v, fd.pick);
     if (fd.required && !v) return { error: `${fd.label} is required.` };
     if (v && fd.type === "date" && !DATE_RE.test(v)) return { error: `${fd.label} must be YYYY, YYYY-MM or YYYY-MM-DD.` };
+    if (v && section === "upcoming" && fd.key === "time" && !TIME_RE.test(v)) return { error: 'Time must include AM or PM, e.g. "3:15 PM"' };
     if (v && fd.type === "enum" && !fd.options.includes(v)) return { error: `${fd.label} must be one of: ${fd.options.join(", ")}.` };
     value[fd.key] = v;
   }
+  // Spec §3.1: an appointment or deadline needs a date; a to-do may omit it. Full records only.
+  if (section === "upcoming" && !partial && (value.type === "appointment" || value.type === "deadline") && !value.date)
+    return { error: "Date is required for appointments and deadlines." };
   if (typeof src.reviewed === "boolean") value.reviewed = src.reviewed;
   if (typeof src.source === "string") value.source = src.source.trim().slice(0, 500);
   return { value };

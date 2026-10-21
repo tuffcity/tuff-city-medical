@@ -9,7 +9,7 @@
 - undo for every write
 - a full menu
 
-Then apply the Aug 20 NYU After Visit Summary as the first import.
+Then apply the Aug 20 after-visit summary as the first import.
 
 **Architecture:** The Worker gains:
 - audit snapshots, plus an `undo` operation in `src/store.js`
@@ -64,7 +64,7 @@ Two pure browser modules (`public/lib/countdown.mjs`, `public/lib/vitals.mjs`) a
   - `type:"meeting"` errors with `/Type/`
   - `SECTIONS.upcoming.date === "date"`
 
-  `test("visit vitals and clinical fields")` asserts that a visit with `bp:"152/72", bmi:"30.35", issues:"Prostate cancer\nElevated blood sugar", followUp:"2027-02-20"` round-trips unchanged.
+  `test("visit vitals and clinical fields")` asserts that a visit with `bp:"150/70", bmi:"31.20", issues:"Example condition A\nExample condition B", followUp:"2027-02-20"` round-trips unchanged.
 - [ ] **Step 2:** `npm test`. Expected: the 2 new tests FAIL.
 - [ ] **Step 3:** Add the fields and section to `src/schema.js`. Place vitals/clinical fields after `procedures` and before the cost fields in `visits`.
 - [ ] **Step 4:** `npm test`. Expected: all pass.
@@ -113,7 +113,7 @@ Two pure browser modules (`public/lib/countdown.mjs`, `public/lib/vitals.mjs`) a
     - `flags({bmi:"30"})` has `"bmi"` and `flags({bmi:"29.99"})` doesn't
     - `flags({spo2:"95%"})` is empty and `flags({spo2:"94%"})` has it
     - `flags({pulse:"100"})` is empty and `flags({pulse:"101"})` has it
-  - `delta` of weight `"218 lb"` vs an earlier `"212 lb"` is `6`
+  - `delta` of weight `"200 lb"` vs an earlier `"194 lb"` is `6`
 - [ ] **Step 2:** `node --test test/countdown.test.js test/vitals.test.js`. Expected: FAIL (modules missing).
 - [ ] **Step 3:** Implement. For NY time, use `Intl.DateTimeFormat("en-US",{timeZone:"America/New_York", hourCycle:"h23", …})` to find the offset for that date; iterate once to correct at the DST boundary.
 - [ ] **Step 4:** Run the tests again. Expected: PASS.
@@ -222,9 +222,9 @@ Two pure browser modules (`public/lib/countdown.mjs`, `public/lib/vitals.mjs`) a
     - Done and cancelled items are absent.
     - Undated to-dos are listed under the cards.
   - **Visit card:**
-    - Tapping the Aug 20 sample visit shows the vitals tiles, with `152/72` flagged.
+    - Tapping the Aug 20 sample visit shows the vitals tiles, with `150/70` flagged.
     - The weight tile shows `↑6`.
-    - Issue chips render, and "Unequal leg length" carries `New` when it isn't a condition.
+    - Issue chips render, and "Sample finding B" carries `New` when it isn't a condition.
   - **Medical tab:** has `.vitals-trend`.
   - **Undo:**
     - Confirming a record shows a toast with Undo; tapping it restores Unreviewed.
@@ -255,22 +255,8 @@ Two pure browser modules (`public/lib/countdown.mjs`, `public/lib/vitals.mjs`) a
 
 - [ ] **Step 1:** Deploy (Global Constraints command with `--define MED_VERSION:'"<sha>"'`). Expected: `Deployed tuff-city-medical`.
 - [ ] **Step 2:** Upload the AVS PDF as a file attached to visit 2026-08-19, and record `fileId`.
-- [ ] **Step 3:** Apply the AVS import with the ops from spec §7. Use the exact vitals: BP 152/72, BMI 30.35, weight 218 lb, height 5′11.06″, temp 97.5 °F, pulse 90, SpO₂ 95%.
-  - **Issues (7, verbatim from the AVS):**
-    - Encounter for general adult medical examination with abnormal findings
-    - Elevated blood sugar
-    - Prostate cancer
-    - Unequal leg length
-    - Anxiety and depression
-    - Class 1 obesity … BMI 30.0 to 30.9 in adult
-    - Elevated blood pressure reading in office without diagnosis of hypertension
-  - **Tests (10, verbatim):** Hemoglobin A1C · Thyroid stimulating hormone · Albumin with creatinine, urine, random · PSA, total · Lipid panel · Comprehensive metabolic panel · CBC with differential · Urinalysis (no culture) · Measure blood pressure · EKG 12-lead
-  - **Instructions:** "Return in about 6 months (around 2027-02-20)."
-  - **Skipped:** birth date and MRN; pages 2 and 4 not in the scan.
-- [ ] **Step 4:** Apply the email-scan items as a second import, titled "aaronf@ email scan 2026-10-15", with these upcoming items:
-  - hearing visit 2026-10-15 3:15 PM, unconfirmed
-  - Medicare plan-change deadline 2026-12-07
-  - to-dos: rebook Union Square Dental cleaning; NYU bill $15.82; review UHC 2027 Annual Notice of Change
+- [ ] **Step 3:** Apply the AVS import with the ops from spec §7 (structural summary: Updated: the visit (date corrected to the AVS date, vitals, issues, tests, instructions) · Added: one new condition · Conflict: AVS medication list vs a medication listed as current · Upcoming: the follow-up · Skipped: birth date/MRN, missing pages). Exact values live in the import payloads in the session scratchpad and are never committed.
+- [ ] **Step 4:** Apply the email-scan items as a second import, titled "email scan 2026-10-15", with the upcoming appointments, deadline and to-dos found in the scan (specific items are in the scratchpad payload, not committed).
 - [ ] **Step 5:** Verify by re-reading KV:
   - The visit is dated 2026-08-20 with vitals.
   - 2 reports exist, open.

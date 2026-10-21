@@ -4,10 +4,14 @@ import app from "../worker.js";
 import indexHtml from "../public/index.html";
 import manifest from "../public/manifest.json.txt";
 import icon from "../public/icon.svg";
+import countdownMjs from "../public/lib/countdown.mjs";
+import vitalsMjs from "../public/lib/vitals.mjs";
 
 const FILES = {
   "/manifest.json": [manifest, "application/manifest+json"],
   "/icon.svg": [icon, "image/svg+xml"],
+  "/lib/countdown.mjs": [countdownMjs, "text/javascript; charset=utf-8"],
+  "/lib/vitals.mjs": [vitalsMjs, "text/javascript; charset=utf-8"],
 };
 
 const ASSETS = {

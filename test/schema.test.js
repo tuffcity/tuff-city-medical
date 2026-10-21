@@ -71,22 +71,64 @@ test("last seen keeps the LATEST date of a range (exception to earliest rule)", 
 
 test("medications carry a Started / prescribed date used for sorting", () => {
   assert.equal(SECTIONS.medications.date, "since");
-  assert.equal(cleanRecord("medications", { name: "Trazodone", since: "2024-12" }).value.since, "2024-12");
+  assert.equal(cleanRecord("medications", { name: "Examplazole", since: "2024-12" }).value.since, "2024-12");
 });
 
 test("visits and procedures carry cost fields and an itemised breakdown", () => {
-  const v = cleanRecord("visits", { date: "2022-06-27", kind: "dental", charged: "$1,245.00", insurancePaid: "$0.00", aaronPaid: "$622.50",
-    balance: "$622.50", codes: "D2740, D2954", teeth: "#30", paymentMethod: "Visa", breakdown: "D2740 – crown – #30 – $1,050\nD2954 – post – #30 – $195", billingStatus: "disputed" });
+  const v = cleanRecord("visits", { date: "2022-06-27", kind: "dental", charged: "$1,200.00", insurancePaid: "$0.00", aaronPaid: "$600.00",
+    balance: "$600.00", codes: "D2740, D2954", teeth: "#30", paymentMethod: "Visa", breakdown: "D2740 – crown – #30 – $1,000\nD2954 – post – #30 – $200", billingStatus: "disputed" });
   assert.equal(v.error, undefined);
-  assert.equal(v.value.charged, "$1,245.00");
+  assert.equal(v.value.charged, "$1,200.00");
   assert.match(v.value.breakdown, /D2954/);
-  const p = cleanRecord("procedures", { name: "Rezum", charged: "$4,000", allowed: "$1,200", claimNumber: "12345" });
+  const p = cleanRecord("procedures", { name: "Example procedure", charged: "$4,000", allowed: "$1,200", claimNumber: "12345" });
   assert.equal(p.value.allowed, "$1,200");
 });
 
 test("treatment plans & quotes section", () => {
   assert.equal(SECTIONS.plans.date, "date");
-  const r = cleanRecord("plans", { date: "2022-02-04", provider: "Union Square Dental", kind: "dental", items: "Crown #30 – $1,500", total: "$1,500", status: "partly done" });
+  const r = cleanRecord("plans", { date: "2022-02-04", provider: "Example Dental", kind: "dental", items: "Crown #30 – $1,500", total: "$1,500", status: "partly done" });
   assert.equal(r.error, undefined);
   assert.match(cleanRecord("plans", { date: "2022", provider: "X", status: "maybe" }).error, /Status/);
+});
+
+test("upcoming section", () => {
+  assert.equal(cleanRecord("upcoming", { type: "deadline", title: "Medicare plan change", date: "2026-12-07" }).error, undefined);
+  assert.match(cleanRecord("upcoming", { type: "deadline", date: "2026-12-07" }).error, /Title is required/);
+  assert.match(cleanRecord("upcoming", { type: "meeting", title: "x" }).error, /Type/);
+  assert.equal(SECTIONS.upcoming.date, "date");
+});
+
+test("upcoming type is required", () => {
+  assert.match(cleanRecord("upcoming", { title: "x" }).error, /Type is required/);
+});
+
+test("upcoming date is required for appointments and deadlines only", () => {
+  assert.equal(cleanRecord("upcoming", { type: "deadline", title: "x" }).error, "Date is required for appointments and deadlines.");
+  assert.equal(cleanRecord("upcoming", { type: "appointment", title: "x" }).error, "Date is required for appointments and deadlines.");
+  assert.equal(cleanRecord("upcoming", { type: "to-do", title: "x" }).error, undefined);
+  assert.equal(cleanRecord("upcoming", { type: "appointment", title: "x", date: "2026-10-15" }).error, undefined);
+  assert.equal(cleanRecord("upcoming", { type: "deadline", title: "x" }, { partial: true }).error, undefined);
+});
+
+test("visit vitals and clinical fields", () => {
+  const input = { date: "2026-02-20", bp: "150/70", weight: "210", height: "5'10\"", bmi: "31.20", pulse: "72", temp: "98.6", spo2: "98%",
+    procedures: "Labs", reason: "Checkup", issues: "Example condition A\nExample condition B", tests: "Test one, Test two", instructions: "Fast before draw", followUp: "2027-02-20" };
+  const r = cleanRecord("visits", input);
+  assert.equal(r.error, undefined);
+  for (const k of Object.keys(input)) assert.equal(r.value[k], input[k], k);
+});
+
+test("upcoming.time needs AM/PM (or unambiguous 24-hour)", () => {
+  const t = (time) => cleanRecord("upcoming", { type: "to-do", title: "x", time });
+  for (const ok of ["", "3:15 PM", "3:15pm", "9 AM", "12 pm", "14:30", "00:15"]) assert.equal(t(ok).error, undefined, ok);
+  for (const bad of ["3:15", "2:30", "3.15 pm", "25:00", "13:60", "0 AM", "13 PM"]) assert.equal(t(bad).error, 'Time must include AM or PM, e.g. "3:15 PM"', bad);
+});
+
+test("every accepted upcoming.time parses in the countdown", async () => {
+  const { parseTime } = await import("../public/lib/countdown.mjs");
+  const want = { "3:15 PM": [15, 15], "3:15pm": [15, 15], "9 AM": [9, 0], "12 pm": [12, 0], "12:05 AM": [0, 5], "14:30": [14, 30], "00:15": [0, 15] };
+  for (const [s, [h, m]] of Object.entries(want)) {
+    assert.equal(cleanRecord("upcoming", { type: "to-do", title: "x", time: s }).error, undefined, s);
+    assert.deepEqual(parseTime(s), { h, m }, s);
+  }
 });

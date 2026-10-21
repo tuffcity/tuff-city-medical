@@ -7,7 +7,7 @@ import worker from "../worker.js";
 import { kvFake } from "../test/kv-fake.js";
 
 const port = Number(process.argv[2] || 8787);
-const TYPES = { ".html": "text/html", ".json": "application/json", ".svg": "image/svg+xml", ".js": "text/javascript" };
+const TYPES = { ".html": "text/html", ".json": "application/json", ".svg": "image/svg+xml", ".js": "text/javascript", ".mjs": "text/javascript" };
 const env = {
   RECORDS: kvFake(),
   ALLOWED_EMAILS: "nanci@tuffcity.com, aaronf@tuffcity.com",
