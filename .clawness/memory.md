@@ -11,3 +11,4 @@
 - Never commit real patient data: fixtures/docs use fictitious values; import payloads live only in session scratchpad.
 - Deploy: page bundled via src/entry.js (Workers Assets upload 401s behind proxy); pass --var MED_VERSION:<sha>.
 - Node fetch to Cloudflare API needs NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt.
+- Big binary to Drive: Composio workbench presigned_url (upload) → curl PUT here → GOOGLEDRIVE_UPLOAD_FILE s3key.
