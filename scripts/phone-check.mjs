@@ -56,7 +56,8 @@ const open = async () => { await page.goto(base, { waitUntil: 'domcontentloaded'
 // Open = the first menu item is really showing: has size, and neither it nor a parent is hidden, see-through or untappable.
 // APP.reveal (optional): a button to tap first when Refresh and Log out live inside a menu (e.g. a ⚙ menu).
 const reveal = async () => { if (APP.reveal) { await page.locator(APP.reveal).first().tap(); await page.waitForTimeout(400); } };
-const menuOpen = () => page.locator(APP.menuItems).first().evaluate(el => {
+// (any item: a long menu may have scrolled its first item out of view)
+const menuOpen = () => page.locator(APP.menuItems).evaluateAll(els => els.some(el => {
   const r = el.getBoundingClientRect();   // a drawer that slides off screen to close counts as closed
   if (!r.width || !r.height || r.right <= 0 || r.left >= innerWidth || r.bottom <= 0 || r.top >= innerHeight) return false;
   for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
@@ -65,7 +66,7 @@ const menuOpen = () => page.locator(APP.menuItems).first().evaluate(el => {
     if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) < 0.1 || (e === el && cs.pointerEvents === 'none')) return false;
   }
   return true;
-}).catch(() => false);
+})).catch(() => false);
 
 try {
   await open();
