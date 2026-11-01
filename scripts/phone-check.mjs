@@ -57,7 +57,8 @@ const open = async () => { await page.goto(base, { waitUntil: 'domcontentloaded'
 // APP.reveal (optional): a button to tap first when Refresh and Log out live inside a menu (e.g. a ⚙ menu).
 const reveal = async () => { if (APP.reveal) { await page.locator(APP.reveal).first().tap(); await page.waitForTimeout(400); } };
 const menuOpen = () => page.locator(APP.menuItems).first().evaluate(el => {
-  const r = el.getBoundingClientRect(); if (!r.width || !r.height) return false;
+  const r = el.getBoundingClientRect();   // a drawer that slides off screen to close counts as closed
+  if (!r.width || !r.height || r.right <= 0 || r.left >= innerWidth || r.bottom <= 0 || r.top >= innerHeight) return false;
   for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
     const cs = getComputedStyle(e);
     // pointer-events only on the item itself: it inherits 'none' from a closed menu, while some open menus keep 'none' on their frame on purpose
