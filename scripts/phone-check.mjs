@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
 
-const APP = {"name": "MED", "ready": "header.appbar .burger", "refresh": "#menu button.mi[data-act=\"refresh\"]", "refreshInPlace": true, "reveal": "header.appbar .burger", "logout": "#menu a.mi.logout", "toggle": "header.appbar .burger", "menuItems": "#menu button.mi, #menu a.mi", "outside": [370, 420]};
+const APP = {"name": "MED", "ready": "header.appbar .burger", "refresh": "#menu button.mi[data-act=\"refresh\"]", "refreshInPlace": true, "reveal": "header.appbar .burger", "logout": "#menu a.mi.logout", "toggle": "header.appbar .burger", "menuItems": "#menu button.mi, #menu a.mi", "outside": [370, 420], "acceptDialogs": true};
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', APP.root || 'public');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json',
@@ -39,6 +39,8 @@ const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, is
 if (APP.storage) await ctx.addInitScript(s => { for (const [k, v] of Object.entries(s)) localStorage.setItem(k, v); }, APP.storage);
 const page = await ctx.newPage();
 page.setDefaultTimeout(10000);
+// APP.acceptDialogs: answer OK to confirm pop-ups (e.g. "Log out of MED?"); otherwise they are dismissed
+if (APP.acceptDialogs) page.on('dialog', d => d.accept().catch(() => {}));
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 

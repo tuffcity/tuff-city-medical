@@ -9,7 +9,6 @@ The same file is in every Tuff City repo; a session that learns a new rule adds 
 **Phone check:** `npm run phone-check` runs a private copy of MED at iPhone size and taps ☰ (every item, tap outside, Esc),
 then Refresh and Log out inside the ☰ drawer (`scripts/phone-check.mjs`, the same script in every Tuff City app; first time in a
 session: `npm ci`, then `npx playwright install chromium`). Run it before asking her to merge any change to the page. Bugs: docs/BUGS.md.
-Known result: "Log out goes to the sign-out page" fails in the check only because Log out asks "Log out of MED?" first (on purpose,
-see docs/CHEAT-SHEET.md) and the test browser answers Cancel; the other 11 checks must pass. The bottom tabs appear only after the
+Log out asks "Log out of MED?" first (on purpose, see docs/CHEAT-SHEET.md); the check answers OK (`acceptDialogs`). The bottom tabs appear only after the
 records load, so the test copy (no data) cannot tap them.
 **Publishing:** wrangler-only. Merging does not publish (no Workers Builds run on main); deploy with the command in README.md.
