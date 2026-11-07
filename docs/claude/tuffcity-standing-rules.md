@@ -26,6 +26,11 @@ rule adds it here too (and to the same file in the other Tuff City repos).
 - Use full names; look up a missing last name.
 
 ## How to work
+- **Default order for any setup task:** 1) automate it (connector, API, Shortcuts file, script);
+  2) then the terminal on her Mac (Desktop Commander); 3) only then direct her step by step with
+  ranked choices, the recommended one first. Before each step she does, name the device,
+  app/browser and button, and say whether she is approving or choosing. Mark every step that needs
+  her hands MANUAL. Show a screenshot or preview of the result before any decision when one can be made.
 - **Claude owns app updates.** She never runs git, Terminal or wrangler. Claude edits, commits, pushes, verifies the
   deploy shipped, and tells her it's live. Her only jobs: dashboard sign-ins, OAuth grants, Cloudflare Access changes.
 - **Merging or pushing to main may publish.** Ask her before each merge; one "yes" covers one merge. Check whether
